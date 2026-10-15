@@ -1,0 +1,13 @@
+[Unit]
+Description=like_a_mac: keep the Mac-style theme in sync with GNOME's Light/Dark setting
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/like-a-mac-sync
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Keep the Mac-style look in sync with GNOME's Light/Dark setting (part of like_a_mac).
+
+Watches org.gnome.desktop.interface color-scheme and switches, for the parts that are installed:
+  * app-theme       GTK3 theme MacTahoe-Light-solid / MacTahoe-Dark-solid,
+                    ~/.config/gtk-4.0/gtk.css rebuilt for GTK4/libadwaita apps,
+                    window title bars (X11) by restarting GNOME's frame helper
+  * icons           MacOS-Like-Light / MacOS-Like-Dark
+  * shell-theme     LikeAMac-Light / LikeAMac-Dark (top bar + Control Center)
+
+The list of installed parts is read from ~/.local/share/like-a-mac/installed on every switch.
+GTK4 apps read gtk.css when they start, so already-open ones keep their old look.
+Run with --once to apply the current mode and exit.
+"""
+import os
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import gi
+gi.require_version('Gio', '2.0')
+from gi.repository import Gio, GLib
+
+HOME = Path.home()
+DATA = Path(os.environ.get('XDG_DATA_HOME', HOME / '.local/share'))
+INSTALLED = DATA / 'like-a-mac/installed'
+GTK4 = HOME / '.config/gtk-4.0'
+USER_THEME_SCHEMA = 'org.gnome.shell.extensions.user-theme'
+USER_THEME_DIRS = [
+    DATA / 'gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/schemas',
+    Path('/usr/share/gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/schemas'),
+]
+FRAMES = '/usr/libexec/mutter-x11-frames'
+
+MODES = {
+    'dark': {'gtk': 'MacTahoe-Dark-solid', 'icons': 'MacOS-Like-Dark', 'shell': 'LikeAMac-Dark',
+             'gtk4_base': 'gtk-Dark.css', 'gtk4_overrides': 'like-a-mac-dark.css'},
+    'light': {'gtk': 'MacTahoe-Light-solid', 'icons': 'MacOS-Like-Light', 'shell': 'LikeAMac-Light',
+              'gtk4_base': 'gtk-Light.css', 'gtk4_overrides': 'like-a-mac-light.css'},
+}
+
+
+def installed():
+    try:
+        return set(INSTALLED.read_text().split())
+    except OSError:
+        return set()
+
+
+def user_theme_settings():
+    """Settings for the User Themes extension (its schema ships with the extension)."""
+    for directory in USER_THEME_DIRS:
+        try:
+            source = Gio.SettingsSchemaSource.new_from_directory(
+                str(directory), Gio.SettingsSchemaSource.get_default(), False)
+        except GLib.Error:
+            continue
+        schema = source.lookup(USER_THEME_SCHEMA, False)
+        if schema is not None:
+            return Gio.Settings.new_full(schema, None, None)
+    schema = Gio.SettingsSchemaSource.get_default().lookup(USER_THEME_SCHEMA, True)
+    return Gio.Settings.new_full(schema, None, None) if schema else None
+
+
+def write_gtk4(mode):
+    """Rebuild ~/.config/gtk-4.0/gtk.css: the MacTahoe base plus our contrast overrides."""
+    base, overrides = MODES[mode]['gtk4_base'], MODES[mode]['gtk4_overrides']
+    if not (GTK4 / base).exists():
+        return
+    body = (GTK4 / overrides).read_text() if (GTK4 / overrides).exists() else ''
+    text = f'@import url("{base}");\n\n{body}'
+    target = GTK4 / 'gtk.css'
+    if target.is_symlink():
+        target.unlink()
+    if target.exists() and target.read_text() == text:
+        return
+    tmp = GTK4 / 'gtk.css.tmp'
+    tmp.write_text(text)
+    os.replace(tmp, target)
+
+
+def frame_helper_pids():
+    """PIDs of GNOME's X11 frame helper, matched by program file (never by command-line
+    text, which would also match any shell that mentions the path)."""
+    found = []
+    for entry in os.listdir('/proc'):
+        if entry.isdigit():
+            try:
+                if os.readlink(f'/proc/{entry}/exe') == FRAMES:
+                    found.append(int(entry))
+            except OSError:
+                continue
+    return found
+
+
+def restart_x11_frames():
+    """On X11 the title bars are drawn by a helper that reads the theme once at startup.
+    Mutter does not always start it again, and without it new windows never appear,
+    so start it ourselves if it has not come back within ~2 s."""
+    if not os.environ.get('DISPLAY'):
+        return
+    pids = frame_helper_pids()
+    if not pids:
+        return
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+    for _ in range(20):
+        time.sleep(0.1)
+        if frame_helper_pids():
+            return
+    try:
+        subprocess.Popen([FRAMES], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError as exc:
+        print(f'like-a-mac-sync: could not start the title-bar helper: {exc}', flush=True)
+
+
+def apply(mode, iface):
+    parts = installed()
+    conf = MODES[mode]
+    frames = False
+    if 'app-theme' in parts:
+        if iface.get_string('gtk-theme') != conf['gtk']:
+            iface.set_string('gtk-theme', conf['gtk'])
+            frames = True
+        write_gtk4(mode)
+    if 'icons' in parts and iface.get_string('icon-theme') != conf['icons']:
+        iface.set_string('icon-theme', conf['icons'])
+    shell = user_theme_settings() if 'shell-theme' in parts else None
+    if shell is not None and shell.get_string('name') != conf['shell']:
+        shell.set_string('name', '')       # empty first, so the shell reloads the stylesheet
+        shell.set_string('name', conf['shell'])
+    Gio.Settings.sync()                    # dconf writes are async; flush before exiting
+    if frames:
+        restart_x11_frames()
+    print(f'like-a-mac-sync: applied {mode} mode', flush=True)
+
+
+def mode_for(value):
+    return 'dark' if value == 'prefer-dark' else 'light'
+
+
+def main():
+    iface = Gio.Settings.new('org.gnome.desktop.interface')
+    apply(mode_for(iface.get_string('color-scheme')), iface)
+    if '--once' in sys.argv:
+        return
+    iface.connect('changed::color-scheme', lambda s, k: apply(mode_for(s.get_string(k)), iface))
+    GLib.MainLoop().run()
+
+
+if __name__ == '__main__':
+    main()

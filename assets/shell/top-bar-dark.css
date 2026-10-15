@@ -1,0 +1,47 @@
+/* like_a_mac: top bar (dark) */
+/* Standard Ubuntu top bar height */
+#panel {
+  height: 32px !important;
+  background-color: #1e1e1e;
+}
+/* Blur my Shell adds this class when no window is near: keep the blurred wallpaper look */
+#panel.transparent-panel {
+  background-color: transparent;
+}
+/* ---- Top bar: one consistent color, no pill backgrounds ---- */
+#panel .panel-button {
+  box-shadow: none !important;
+  background-color: transparent;
+  border: 3px solid transparent !important;
+  border-radius: 9999px;
+}
+#panel .panel-button:hover {
+  box-shadow: none !important;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+#panel .panel-button:active, #panel .panel-button:overview,
+#panel .panel-button:focus, #panel .panel-button:checked {
+  box-shadow: none !important;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+#panel .panel-button.clock-display .clock {
+  box-shadow: none !important;
+  background-color: transparent;
+  border: 3px solid transparent !important;
+  padding: 0 12px !important;
+}
+#panel .panel-button:hover.clock-display .clock {
+  box-shadow: none !important;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+#panel .panel-button:active.clock-display .clock, #panel .panel-button:checked.clock-display .clock,
+#panel .panel-button:focus.clock-display .clock {
+  box-shadow: none !important;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+
+/* menus sit flush under the top bar (macOS-style), no floating gap */
+.popup-menu-boxpointer { -arrow-rise: 0 !important; }
+#panel .popup-menu-boxpointer { -arrow-rise: 0 !important; }
+.popup-menu-content { margin-top: 0 !important; }

@@ -1,0 +1,7 @@
+{
+  "uuid": "downloads-stack@adithya",
+  "name": "Downloads Stack",
+  "description": "A macOS-style Downloads stack in Ubuntu Dock: the icon previews your latest downloads, click it for a grid of recent files.",
+  "shell-version": ["46"],
+  "url": ""
+}

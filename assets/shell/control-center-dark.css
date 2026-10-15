@@ -1,0 +1,219 @@
+/* like_a_mac: Control Center (dark) */
+/* ---- Control Center: same design language as the notification panel ---- */
+/* Panel: notification-panel background, radius and shadow */
+.quick-settings {
+  padding: 12px !important;
+  padding-top: 10px !important;
+  border-radius: 16px !important;
+  margin-top: 6px !important;
+  margin-bottom: 12px !important;
+  margin-left: 12px !important;
+  color: #dedede;
+  background-color: #242424 !important;
+  background-gradient-direction: none;
+  border: none !important;
+  box-shadow: 0 5px 10px 0 rgba(0, 0, 0, 0.18) !important;
+}
+.quick-settings-grid {
+  spacing-rows: 10px;
+  spacing-columns: 10px;
+}
+
+/* Every tile, slider card and round button: one card colour, one hover, one pressed state */
+.quick-toggle, .quick-menu-toggle, .quick-slider,
+.quick-settings-system-item .icon-button,
+.quick-settings-system-item .power-item,
+.quick-settings .QSTWEAKS-media {
+  background-color: rgba(56, 56, 56, 0.95) !important;
+  border: none !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  color: #dedede !important;
+}
+.quick-toggle:hover, .quick-menu-toggle:hover, .quick-slider:hover,
+.quick-settings-system-item .icon-button:hover,
+.quick-settings-system-item .power-item:hover,
+.quick-menu-toggle .quick-toggle-arrow:hover,
+.quick-slider .icon-button:hover {
+  background-color: #454545 !important;
+  color: #dedede !important;
+}
+.quick-toggle:active, .quick-menu-toggle:active,
+.quick-settings-system-item .icon-button:active,
+.quick-settings-system-item .power-item:active,
+.quick-menu-toggle .quick-toggle-arrow:active,
+.quick-slider .icon-button:active {
+  background-color: rgba(64, 64, 64, 0.95) !important;
+  color: #dedede !important;
+}
+
+/* Tiles */
+.quick-toggle, .quick-menu-toggle {
+  min-width: 12.2em !important;
+  max-width: 12.2em !important;
+  min-height: 3.6em !important;
+  border-radius: 9999px;
+  padding: 0 !important;
+}
+.quick-toggle > StBoxLayout { spacing: 12px; }
+.quick-toggle:ltr > StBoxLayout { padding-left: 9px; }
+.quick-toggle .quick-toggle-title { font-weight: bold; color: #dedede; }
+.quick-toggle .quick-toggle-subtitle { font-weight: normal; color: #999999; }
+
+/* Icon disc: neutral when off, accent-filled when on */
+.quick-toggle .quick-toggle-icon,
+.quick-menu-toggle .quick-toggle .quick-toggle-icon {
+  icon-size: 18px !important;
+  min-height: 2.6em !important;
+  min-width: 2.6em !important;
+  border-radius: 9999px;
+  background-color: rgba(222, 222, 222, 0.2);
+  color: #dedede;
+}
+.quick-toggle:checked, .quick-menu-toggle:checked {
+  background-color: #0088FF !important;
+  color: #ffffff !important;
+}
+.quick-toggle:checked:hover, .quick-menu-toggle:checked:hover {
+  background-color: #299bff !important;
+}
+.quick-toggle:checked .quick-toggle-title,
+.quick-menu-toggle:checked .quick-toggle-title { color: #ffffff; }
+.quick-toggle:checked .quick-toggle-subtitle,
+.quick-menu-toggle:checked .quick-toggle-subtitle { color: rgba(255, 255, 255, 0.85); }
+.quick-toggle:checked .quick-toggle-icon,
+.quick-menu-toggle .quick-toggle:checked .quick-toggle-icon {
+  background-color: rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+}
+
+/* Menu toggles: the inner button never paints its own background, the whole pill reacts */
+.quick-menu-toggle .quick-toggle,
+.quick-menu-toggle .quick-toggle:hover,
+.quick-menu-toggle .quick-toggle:active,
+.quick-menu-toggle .quick-toggle:checked {
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.quick-menu-toggle .quick-toggle:ltr > StBoxLayout { padding-left: 7px; padding-right: 4px; }
+.quick-menu-toggle .quick-toggle-arrow {
+  min-width: 2em;
+  min-height: 2em;
+  margin: 0.4em;
+  border-radius: 9999px;
+  color: #dedede;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+.quick-menu-toggle:checked .quick-toggle-arrow { color: #ffffff; }
+
+/* Sliders */
+.quick-slider {
+  padding: 0.75em 0.9em !important;
+  border-radius: 20px;
+}
+.quick-slider .icon-button { padding: 6px; color: #dedede; background-color: transparent !important; box-shadow: none !important; }
+.quick-slider .slider {
+  -barlevel-height: 6px;
+  -barlevel-background-color: rgba(222, 222, 222, 0.2);
+  -barlevel-active-background-color: #0088FF;
+  -barlevel-overdrive-color: #ffd60a;
+  -slider-handle-radius: 6px;
+  color: #dedede;
+}
+
+/* Top row */
+.quick-settings .icon-button, .quick-settings .button { color: #dedede; }
+.quick-settings-system-item > StBoxLayout { spacing: 10px; }
+.quick-settings-system-item .icon-button {
+  min-width: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  border-radius: 9999px;
+}
+.quick-settings-system-item .power-item {
+  min-height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 9999px;
+}
+
+/* Sub-menus (Wi-Fi networks, Bluetooth devices, ...) */
+.quick-toggle-menu {
+  padding: 10px;
+  margin: 8px 12px 0;
+  border-radius: 16px;
+  background-color: #2e2e2e !important;
+  border: none !important;
+  box-shadow: 0 5px 10px 0 rgba(0, 0, 0, 0.18);
+  color: #dedede !important;
+}
+.quick-toggle-menu .popup-menu-item { padding: 8px 12px; color: #dedede; border-radius: 8px; }
+.quick-toggle-menu .popup-menu-item:hover,
+.quick-toggle-menu .popup-menu-item:focus { background-color: rgba(255, 255, 255, 0.1) !important; }
+.quick-toggle-menu .popup-menu-item:active { background-color: rgba(255, 255, 255, 0.16) !important; }
+.quick-toggle-menu .header .icon {
+  icon-size: 18px; padding: 8px;
+  background-color: rgba(222, 222, 222, 0.2);
+  color: #dedede;
+}
+.quick-toggle-menu .header .icon.active { background-color: #0088FF; color: #ffffff; }
+
+/* Media tile from Quick Settings Tweaks */
+.quick-settings .QSTWEAKS-media { border-radius: 20px; }
+.quick-settings .QSTWEAKS-media .QSTWEAKS-header-label,
+.quick-settings .QSTWEAKS-media .QSTWEAKS-label { color: #dedede; }
+.quick-settings .QSTWEAKS-media .icon-button { color: #dedede; background-color: transparent !important; }
+
+/* --- consistency fixes --- */
+/* the inner button of an arrow tile must NOT take the tile's fixed width, or the arrow is pushed out */
+.quick-menu-toggle .quick-toggle {
+  min-width: auto !important;
+  max-width: none !important;
+}
+.quick-menu-toggle .quick-toggle-arrow {
+  min-width: 1.9em;
+  min-height: 1.9em;
+  margin: 0.35em 0.35em 0.35em 0;
+  padding: 0 !important;
+}
+/* same icon disc in every tile, in every state */
+.quick-toggle .quick-toggle-icon,
+.quick-menu-toggle .quick-toggle .quick-toggle-icon,
+.quick-menu-toggle:checked .quick-toggle .quick-toggle-icon {
+  icon-size: 18px !important;
+  min-height: 2.6em !important;
+  min-width: 2.6em !important;
+  border-radius: 9999px;
+}
+.quick-toggle:checked .quick-toggle-icon,
+.quick-menu-toggle .quick-toggle:checked .quick-toggle-icon,
+.quick-menu-toggle:checked .quick-toggle .quick-toggle-icon {
+  background-color: rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+}
+/* an arrow tile whose inner button is checked still fills accent across the whole pill */
+.quick-menu-toggle .quick-toggle:checked {
+  background: none !important;
+}
+
+/* --- round 2 fixes --- */
+/* battery item: one pill only, no circle behind its icon */
+.quick-settings-system-item .power-item StIcon,
+.quick-settings-system-item .power-item .quick-toggle-icon {
+  background-color: transparent !important;
+  border-radius: 0;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+/* arrow: soft overlay on hover instead of a grey box (works on grey and accent tiles) */
+.quick-menu-toggle .quick-toggle-arrow,
+.quick-menu-toggle:checked .quick-toggle-arrow {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+.quick-menu-toggle .quick-toggle-arrow:hover { background-color: rgba(255, 255, 255, 0.18) !important; }
+.quick-menu-toggle .quick-toggle-arrow:active { background-color: rgba(255, 255, 255, 0.26) !important; }
+.quick-menu-toggle:checked .quick-toggle-arrow:hover { background-color: rgba(255, 255, 255, 0.28) !important; }
+.quick-menu-toggle:checked .quick-toggle-arrow:active { background-color: rgba(255, 255, 255, 0.36) !important; }

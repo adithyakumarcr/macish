@@ -1,0 +1,89 @@
+/* Downloads Stack. Colors are neutral greys so the popup follows the
+ * light/dark shell theme it sits in. */
+
+.downloads-stack-layer {
+  icon-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.downloads-stack-content {
+  padding: 4px 6px 6px 6px;
+  spacing: 8px;
+}
+
+.downloads-stack-header {
+  spacing: 16px;
+  padding: 2px 6px 4px 6px;
+}
+
+.downloads-stack-title {
+  font-weight: bold;
+  font-size: 1.15em;
+}
+
+.downloads-stack-subtitle {
+  font-size: 0.82em;
+  color: rgba(128, 128, 128, 1);
+}
+
+.downloads-stack-open {
+  padding: 4px 8px 4px 12px;
+  border-radius: 99px;
+  font-size: 0.9em;
+  background-color: rgba(128, 128, 128, 0.16);
+}
+
+.downloads-stack-open:hover,
+.downloads-stack-open:focus {
+  background-color: rgba(128, 128, 128, 0.28);
+}
+
+.downloads-stack-open:active {
+  background-color: rgba(128, 128, 128, 0.38);
+}
+
+.downloads-stack-open-box {
+  spacing: 2px;
+}
+
+.downloads-stack-open-icon {
+  icon-size: 14px;
+}
+
+.downloads-stack-tile {
+  width: 92px;
+  padding: 10px 4px 6px 4px;
+  border-radius: 12px;
+}
+
+.downloads-stack-tile:hover,
+.downloads-stack-tile:focus {
+  background-color: rgba(128, 128, 128, 0.18);
+}
+
+.downloads-stack-tile:active {
+  background-color: rgba(128, 128, 128, 0.32);
+}
+
+.downloads-stack-tile-box {
+  spacing: 6px;
+}
+
+.downloads-stack-tile-icon {
+  icon-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.downloads-stack-tile-label {
+  width: 84px;
+  font-size: 0.82em;
+  text-align: center;
+}
+
+.downloads-stack-empty {
+  padding: 36px 48px;
+  color: rgba(128, 128, 128, 1);
+}
+
+/* Room for the overlay scrollbar so it never covers the last column. */
+.downloads-stack-grid {
+  padding-right: 10px;
+}

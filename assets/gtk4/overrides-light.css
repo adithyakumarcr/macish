@@ -1,0 +1,32 @@
+/* ---- Local contrast overrides (like_a_mac) ---- */
+/* Sidebar: macOS System Settings-like gray, clearly separated from content */
+.sidebar-pane,
+.sidebar-pane headerbar,
+.sidebar-pane list.navigation-sidebar,
+.sidebar-pane .navigation-sidebar {
+  background-color: #e8e8ed;
+  color: #1d1d1f;
+}
+.sidebar-pane .navigation-sidebar > row { color: #1d1d1f; }
+.sidebar-pane .navigation-sidebar > row:selected {
+  background-color: #0a84ff;
+  color: #ffffff;
+}
+
+/* Content: light gray page with white grouped rows (iOS/macOS "grouped" style) */
+preferencespage > scrolledwindow > viewport,
+.content-pane,
+.content-pane headerbar {
+  background-color: #f5f5f7;
+}
+.card, list.boxed-list, list.boxed-list-separate,
+list.content:not(.conversation-listbox) {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #1d1d1f;
+}
+.card > separator, list.boxed-list > separator, list.content > separator {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+.dim-label, row .subtitle { color: rgba(0, 0, 0, 0.62); }
+

@@ -1,0 +1,6 @@
+# local only: personal backups, Apple's SF Mono (not redistributable), old upstream checkout
+backup/
+fonts/
+vendor/
+restore-ubuntu-look.sh
+__pycache__/

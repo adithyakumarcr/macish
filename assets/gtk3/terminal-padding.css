@@ -1,0 +1,4 @@
+/* macOS Terminal-like inner padding for VTE terminals (Terminator, GNOME Terminal) */
+vte-terminal {
+  padding: 6px 10px;
+}
