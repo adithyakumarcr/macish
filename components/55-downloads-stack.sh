@@ -17,7 +17,7 @@ component_install() {
     track_path "$dest"
     rm -rf "$dest"
     mkdir -p "$dest"
-    cp "$LAM_DIR"/downloads-stack/{extension.js,metadata.json,stylesheet.css,thumbnailer.py} "$dest/"
+    cp "$LAM_DIR"/extensions/downloads-stack/{extension.js,metadata.json,stylesheet.css,thumbnailer.py} "$dest/"
   fi
   # ext_use only downloads when missing, which it never is here
   ext_use "$UUID"

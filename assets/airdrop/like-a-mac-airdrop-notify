@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""AirDrop notifications with buttons, for like_a_mac.
+
+  like-a-mac-airdrop-notify ask SENDER WHAT     Accept / Decline; exits 0 only on Accept.
+                                                No answer in 60 s counts as Decline.
+  like-a-mac-airdrop-notify notice TITLE BODY   a Stop button; exits 0 when it's pressed
+
+The AirDrop receiver runs `ask` for every transfer; like-a-mac-airdrop runs `notice`
+while AirDrop is on. Closing the notification, or stopping this program, answers no.
+"""
+import re
+import signal
+import sys
+
+from gi.repository import Gio, GLib
+
+ASK_SECONDS = 60
+# How long "AirDrop is on" stays on screen in Do Not Disturb before it moves to the list.
+BRIEF_SECONDS = 6
+ICON = 'folder-download'
+# What a stranger's device name or file name may not carry into the notification.
+UNSAFE = re.compile(r'[\x00-\x1f\x7f-\x9f​-‏‪-‮⁦-⁩﻿]')
+BUS_NAME = 'org.freedesktop.Notifications'
+PATH = '/org/freedesktop/Notifications'
+
+
+def clean(text, limit=100):
+    text = UNSAFE.sub('', text).strip()
+    return text if len(text) <= limit else text[:limit - 1] + '…'
+
+
+def show(title, body, actions, timeout, urgency):
+    """Shows one notification. Returns (key of the button pressed or None, how it ended:
+    'action', 'closed', 'timeout' or 'stopped').
+
+    urgency 2 (critical) keeps the banner on screen until answered, even in Do Not
+    Disturb. GNOME shows one banner at a time, so only the Accept/Decline question may
+    use it: a critical "AirDrop is on" would hold that question back until closed."""
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+    loop = GLib.MainLoop()
+    state = {'id': None, 'answer': None, 'closed': False, 'how': 'stopped'}
+
+    def on_signal(_conn, _sender, _path, _iface, name, params):
+        if params[0] != state['id']:
+            return
+        if name == 'ActionInvoked':
+            state['answer'], state['how'] = params[1], 'action'
+        else:
+            state['closed'], state['how'] = True, 'closed'
+        loop.quit()
+
+    # Subscribed before Notify, so an answer can't arrive unheard.
+    bus.signal_subscribe(BUS_NAME, BUS_NAME, None, PATH, None,
+                         Gio.DBusSignalFlags.NONE, on_signal)
+    flat = [s for key, label in actions for s in (key, label)]
+    hints = {'urgency': GLib.Variant('y', urgency)}
+    state['id'] = bus.call_sync(
+        BUS_NAME, PATH, BUS_NAME, 'Notify',
+        GLib.Variant('(susssasa{sv}i)',
+                     ('AirDrop', 0, ICON, title, GLib.markup_escape_text(body), flat, hints, 0)),
+        GLib.VariantType('(u)'), Gio.DBusCallFlags.NONE, -1, None).unpack()[0]
+
+    def timed_out():
+        state['how'] = 'timeout'
+        loop.quit()
+
+    if timeout:
+        GLib.timeout_add_seconds(timeout, timed_out)
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, loop.quit)
+    loop.run()
+
+    if not state['closed']:
+        try:
+            bus.call_sync(BUS_NAME, PATH, BUS_NAME, 'CloseNotification',
+                          GLib.Variant('(u)', (state['id'],)), None,
+                          Gio.DBusCallFlags.NONE, -1, None)
+        except GLib.Error:
+            pass
+    return state['answer'], state['how']
+
+
+def banners_shown():
+    """False while GNOME's Do Not Disturb is on."""
+    try:
+        return Gio.Settings.new('org.gnome.desktop.notifications').get_boolean('show-banners')
+    except Exception:   # no such schema outside GNOME
+        return True
+
+
+def main(argv):
+    if len(argv) != 3 or argv[0] not in ('ask', 'notice'):
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    try:
+        if argv[0] == 'ask':
+            sender, what = clean(argv[1]), clean(argv[2], 200)
+            answer, _ = show(f'“{sender}” would like to share', what,
+                             [('decline', 'Decline'), ('accept', 'Accept')], ASK_SECONDS, 2)
+            return 0 if answer == 'accept' else 1
+        # Normal urgency: its banner goes after a few seconds and it stays in the list with
+        # Stop. Do Not Disturb shows no banner for that, so there it's critical for a few
+        # seconds first, so turning AirDrop on is seen.
+        how = 'timeout'
+        if not banners_shown():
+            answer, how = show(argv[1], argv[2], [('stop', 'Stop')], BRIEF_SECONDS, 2)
+        if how == 'timeout':
+            answer, _ = show(argv[1], argv[2], [('stop', 'Stop')], 0, 1)
+        return 0 if answer == 'stop' else 1
+    except GLib.Error as e:
+        print(f'like-a-mac-airdrop-notify: no notification could be shown: {e.message}',
+              file=sys.stderr)
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

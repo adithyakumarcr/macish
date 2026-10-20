@@ -15,6 +15,8 @@ declare -A LAM_REPOS=(
   [MacTahoe-icon-theme]="https://github.com/vinceliuice/MacTahoe-icon-theme 839848b9a8a38a92a6936e30c4abe35cc6f2546d"
   [MacOS-Like]="https://github.com/Scrimas/MacOS-Like efbc63d48d52bbaf52e9a70fb18e0d0c3c0719b2"
   [WhiteSur-cursors]="https://github.com/vinceliuice/WhiteSur-cursors e190baf618ed95ee217d2fd45589bd309b37672b"
+  [omdrop-owl]="https://github.com/t4t5/omdrop-owl 8213aee9f018ffd78a3fc71863a364fcddd938cd"
+  [omdrop-plugin]="https://github.com/netmojo-systems/omdrop-plugin ff320344329ffaee2c67a2f6f6dcd18cea827201"
 )
 
 if [[ -t 1 ]]; then
@@ -35,6 +37,9 @@ is_installed() { grep -qx "$1" "$LAM_INSTALLED"; }
 mark_installed() { is_installed "$1" || echo "$1" >> "$LAM_INSTALLED"; }
 mark_removed() { sed -i "/^$1\$/d" "$LAM_INSTALLED"; }
 any_installed() { local c; for c in "$@"; do is_installed "$c" && return 0; done; return 1; }
+# has_state ID  - installed, or left saved state behind (an install that failed halfway), so
+# uninstall still has something to undo
+has_state() { is_installed "$1" || compgen -G "$LAM_SAVED/$1.*" > /dev/null; }
 
 # ---- upstream sources ---------------------------------------------------------
 # fetch_repo NAME -> prints the checkout directory

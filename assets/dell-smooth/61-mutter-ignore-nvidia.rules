@@ -1,0 +1,2 @@
+# Mutter keeps a context on every DRM device it opens, which stops the dGPU from entering D3.
+SUBSYSTEM=="drm", KERNEL=="card[0-9]*", DRIVERS=="nvidia", TAG+="mutter-device-ignore"

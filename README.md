@@ -1,13 +1,71 @@
 # like_a_mac
 
-Make Ubuntu look like macOS Tahoe, one part at a time. Run the installer, tick the parts you
-want (login screen, app icons, Control Center, dock, ...), and it sets them up. Every part can
-be removed again, and removing it puts your earlier settings back.
+**Make your Ubuntu look, and work, like a Mac.**
 
-Made for **Ubuntu 24.04 with GNOME 46** (the default Ubuntu desktop). Most parts also work on
-other GNOME versions; the installer leaves out the ones that don't.
+![Ubuntu 24.04](https://img.shields.io/badge/Ubuntu-24.04-E95420?logo=ubuntu&logoColor=white)
+![GNOME 46](https://img.shields.io/badge/GNOME-46-4A86CF?logo=gnome&logoColor=white)
+![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue)
 
-## Install
+like_a_mac turns a standard Ubuntu desktop into a macOS Tahoe look-alike, one feature at a time:
+the theme, icons, dock and menu bar, but also the things you'd miss from a Mac, such as Spotlight on
+<kbd>Alt</kbd>+<kbd>Space</kbd>, trackpad gestures, three-finger drag, and receiving files from an
+iPhone over AirDrop. You choose the features from a list, and every one of them can be removed
+again, putting your earlier settings back.
+
+![The installer: tick the features you want, then press Enter](docs/images/installer.png)
+
+## Contents
+
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Using the installer](#using-the-installer)
+- [Requirements](#requirements)
+- [AirDrop](#airdrop)
+- [Uninstalling](#uninstalling)
+- [What it changes on your system](#what-it-changes-on-your-system)
+- [Troubleshooting](#troubleshooting)
+- [For developers](#for-developers)
+- [Credits](#credits) · [License](#license)
+
+## Features
+
+**Look like a Mac**
+
+| Feature | id | What you get | Default |
+|---|---|---|---|
+| Apps & windows | `app-theme` | [MacTahoe](https://github.com/vinceliuice/MacTahoe-gtk-theme) theme for apps and title bars, with extra contrast for sidebars and lists | on |
+| Window buttons on the left | `window-buttons` | close, minimize, maximize on the left | on |
+| App icons | `icons` | [MacTahoe](https://github.com/vinceliuice/MacTahoe-icon-theme) icons; [MacOS-Like](https://github.com/Scrimas/MacOS-Like) puts every other app on a matching tile | on |
+| Mouse pointer | `cursors` | [WhiteSur cursors](https://github.com/vinceliuice/WhiteSur-cursors) | on |
+| Fonts | `fonts` | Inter, the closest free font to Apple's SF Pro, for menus, windows and title bars | on |
+| Top bar | `top-bar` | slim menu bar, clock on the right, no Activities button, a menu with About, Force Quit and power options, see-through when no window touches it | on |
+| Control Center | `control-center` | Quick Settings restyled like macOS Control Center, with a media tile | on |
+| Dock | `dock` | at the bottom, hides when a window needs the space, dots under open apps, "genie" minimize, snappier animations | on |
+| Downloads stack | `downloads-stack` | a Downloads stack next to the Trash that previews your newest files; click for a grid (needs Ubuntu Dock) | on |
+| Wallpaper | `wallpaper` | Tahoe wallpaper: day in Light mode, night in Dark mode | on |
+| Terminal | `terminal` | Terminator dressed as macOS Terminal "Pro", with frosted glass | off |
+| Login screen | `login-screen` | dark macOS-style login screen (changes a system file) | off |
+
+**Work like a Mac**
+
+| Feature | id | What you get | Default |
+|---|---|---|---|
+| Touchpad | `touchpad` | tap to click, natural scrolling, two-finger click or tap for right-click, ignored while typing. Gestures through [Touchpad Gesture Customization](https://extensions.gnome.org/extension/7850/): three or four fingers sideways switch desktops, up and down open the overview, a four-finger pinch shows the desktop | on |
+| Three-finger drag | `three-finger-drag` | drag windows and select text with three fingers (newer libinput from a PPA, Ubuntu 24.04 only) | on |
+| Spotlight | `spotlight` | <kbd>Alt</kbd>+<kbd>Space</kbd> opens a search bar: apps, websites and Google searches in Chrome, folders (type `~/` or `/`, <kbd>Tab</kbd> goes in), recent searches | on |
+| AirDrop | `airdrop` | receive files from iPhones, iPads and Macs over real AirDrop, with Accept and Decline in a notification ([details](#airdrop)) | off |
+
+**For one laptop**
+
+| Feature | id | What you get | Default |
+|---|---|---|---|
+| Dell 14 Premium smoothness | `dell-smooth` | smoother animations and gestures on the Dell 14 Premium (DA14250): newer Intel GPU firmware, the NVIDIA GPU sleeps when it isn't used, GNOME's power modes reach Dell's thermal modes | off |
+
+The installer only offers the features this computer supports. **Light and Dark** follow
+Settings → Appearance as usual: a small user service, `like-a-mac-sync`, switches the app theme,
+icons, top bar and Control Center along with it.
+
+## Quick start
 
 ```sh
 git clone https://github.com/adithyakumarcr/like_a_mac.git
@@ -15,75 +73,181 @@ cd like_a_mac
 ./install.sh
 ```
 
-A checklist opens: <kbd>Space</kbd> ticks or unticks a part, <kbd>Enter</kbd> starts. Run it as
-yourself, **not** with `sudo`; it asks for your password once if packages need installing (and
-for the login screen). When it's done, log out and back in (on X11 you can also press
-<kbd>Alt</kbd>+<kbd>F2</kbd>, type `r`, <kbd>Enter</kbd>).
+Tick what you want, press <kbd>Enter</kbd>, give your password if asked, then log out and back in.
 
-## The parts
+## Using the installer
 
-| Part | id | What it changes |
-|---|---|---|
-| Apps & windows | `app-theme` | [MacTahoe](https://github.com/vinceliuice/MacTahoe-gtk-theme) theme for apps and title bars, with extra contrast for sidebars and lists |
-| Window buttons on the left | `window-buttons` | close, minimize, maximize on the left |
-| App icons | `icons` | [MacTahoe](https://github.com/vinceliuice/MacTahoe-icon-theme) icons; [MacOS-Like](https://github.com/Scrimas/MacOS-Like) puts every other app on a matching tile |
-| Mouse pointer | `cursors` | [WhiteSur cursors](https://github.com/vinceliuice/WhiteSur-cursors) |
-| Fonts | `fonts` | Inter (closest free font to Apple's SF Pro) for menus, windows and title bars |
-| Top bar | `top-bar` | slim menu bar, clock on the right, no Activities button, a menu with About / Force Quit / power options, see-through blur when no window touches it |
-| Control Center | `control-center` | Quick Settings restyled like macOS Control Center (same cards as the notification panel), media tile |
-| Dock | `dock` | at the bottom, hides when a window needs the space, dots under open apps, blurred background, "genie" minimize |
-| Downloads stack | `downloads-stack` | a Downloads stack next to the Trash: previews your newest files, click for a grid (GNOME 46 + Ubuntu Dock) |
-| Wallpaper | `wallpaper` | Tahoe wallpaper: day in Light mode, night in Dark mode |
-| Terminal | `terminal` | Terminator dressed as macOS Terminal "Pro" with frosted glass (off by default) |
-| Login screen | `login-screen` | dark macOS-style login screen (off by default; changes a system file, needs your password) |
+Run it as yourself, **not** with `sudo`. A list of features opens under
+**MAKE YOUR UBUNTU, WORK LIKE MAC**:
 
-**Light and Dark:** switch in Settings → Appearance as usual. A small user service
-(`like-a-mac-sync`) switches the app theme, icons, top bar and Control Center with it.
+| Key | Does |
+|---|---|
+| <kbd>↑</kbd> <kbd>↓</kbd> | move |
+| <kbd>Space</kbd> | tick `[x]` or untick `[ ]` a feature |
+| <kbd>a</kbd> | tick or untick everything |
+| <kbd>Enter</kbd> | install what's ticked |
+| <kbd>q</kbd> | quit without changing anything |
 
-## More options
+If anything you ticked needs your password (some features do, and so do packages to install), it's
+asked **once**, right after <kbd>Enter</kbd>, and the rest installs without stopping. When it's done,
+log out and back in.
+
+From the command line:
 
 ```sh
-./install.sh --list                      # the parts and which are installed
-./install.sh --only icons,dock,top-bar   # install just these, no menu
+./install.sh --list                      # every feature, and which are installed
+./install.sh --only icons,dock,top-bar   # install just these, without the list
 ./install.sh --all                       # everything this computer supports
 ./install.sh --uninstall                 # choose what to remove
 ./install.sh --uninstall --all           # remove everything
 ```
 
-`-y` skips the "Continue?" question. Upstream projects are pinned to the versions this was
-tested with; `LIKE_A_MAC_LATEST=1 ./install.sh` uses their newest versions instead.
+`--only` and `--all` ask "Continue?" first; `-y` skips that. Upstream projects are pinned to the
+versions this was tested with; `LIKE_A_MAC_LATEST=1 ./install.sh` uses their newest versions instead.
 
-## What it touches
+## Requirements
 
-- Themes, icons and extensions go into your home folder (`~/.themes`, `~/.local/share/...`).
-  Extensions come from [extensions.gnome.org](https://extensions.gnome.org): User Themes,
-  Blur my Shell, Just Perfection, Logo Menu, Compiz alike Magic Lamp Effect, Quick Settings Tweaks.
-- Settings are changed with `dconf`; the old value of every key is saved in
+- **Ubuntu 24.04 with GNOME 46**, the default Ubuntu desktop. Most features also work on other
+  GNOME versions; the installer leaves out the ones that don't.
+- An internet connection: themes and icons come from their upstream projects, extensions from
+  [extensions.gnome.org](https://extensions.gnome.org).
+- **Gestures need Wayland.** The Touchpad feature sets your login to "Ubuntu on Wayland".
+- **AirDrop** needs a [Wi-Fi card that omdrop-owl supports](https://github.com/t4t5/omdrop-owl#supported-hardware).
+
+## AirDrop
+
+Open **AirDrop** from the app grid, or run `like-a-mac-airdrop on [minutes]`. For 10 minutes this
+computer appears under *Other Devices* in the AirDrop sheet of nearby iPhones, iPads and Macs,
+whatever their own AirDrop setting. Every transfer asks you first in a notification: **Accept**
+saves it to Downloads; **Decline**, or no answer within a minute, refuses it. The "AirDrop is on"
+notification has a **Stop** button, and `like-a-mac-airdrop off` does the same.
+
+- **Wi-Fi is off while AirDrop is on** with Intel cards, which can't run AirDrop's Wi-Fi link while
+  connected to a network. It reconnects when AirDrop turns off; Ethernet stays up.
+- **It's slow with Intel cards**, which only manage AirDrop on 2.4 GHz channel 6: a 3 MB photo
+  takes about 20 seconds. The feature includes the speed-ups from
+  [omdrop-owl PR #64](https://github.com/t4t5/omdrop-owl/pull/64) (not merged upstream yet), and
+  on Intel cards it makes this computer keep AirDrop's timing (sync master) and reply faster. If
+  transfers get worse, `sudo rm /etc/omdrop/tx-rate /etc/omdrop/election-metric` turns that off
+  from the next time AirDrop is on.
+- **Everyone mode only.** Contacts Only needs an Apple-issued identity, which this can't get.
+
+## Uninstalling
+
+```sh
+./install.sh --uninstall          # choose what to remove
+./install.sh --uninstall --all    # remove everything
+```
+
+Removing a feature puts back every setting it changed and deletes every file it created, including
+system changes and packages it installed that weren't there before. A feature whose install
+stopped halfway shows as **partly installed** in `--list`, and can still be removed.
+
+## What it changes on your system
+
+**In your home folder**, no password needed:
+
+- Themes, icons and extensions go into `~/.themes` and `~/.local/share/...`. Extensions come from
+  [extensions.gnome.org](https://extensions.gnome.org): User Themes, Blur my Shell, Just
+  Perfection, Logo Menu, Compiz alike Magic Lamp Effect, Quick Settings Tweaks and Touchpad Gesture
+  Customization.
+- Settings are changed with `dconf`. The old value of every key is saved in
   `~/.local/share/like-a-mac/saved/` and put back on uninstall.
-- `sudo` is used only for `apt install` (`git sassc libglib2.0-dev-bin libxml2-utils python3-pil
-  librsvg2-bin rsync fonts-inter terminator`, only those a chosen part needs) and for the login
-  screen, which adds its own theme under `/usr/share/gnome-shell/theme/MacTahoe-GDM` and points
+
+**With `sudo`**, asked once up front:
+
+- **Packages:** `apt install` of only what the chosen features need (`git sassc
+  libglib2.0-dev-bin libxml2-utils python3-pil librsvg2-bin rsync fonts-inter terminator`).
+- **Login screen:** adds its theme under `/usr/share/gnome-shell/theme/MacTahoe-GDM` and points
   Ubuntu's `gdm-theme.gresource` setting at it. Ubuntu's own theme file is never modified.
+- **Three-finger drag:** adds the
+  [ubuntuhandbook1/libinput](https://launchpad.net/~ubuntuhandbook1/+archive/ubuntu/libinput) PPA
+  and upgrades the installed `libinput*` packages from it. Removing it removes the PPA and puts
+  Ubuntu's libinput back. A PPA added by hand before is taken over, so it goes too.
+- **Dell 14 Premium smoothness:** installs Intel's GPU firmware `mtl_guc_70.bin` from
+  [linux-firmware](https://gitlab.com/kernel-firmware/linux-firmware) 20260410 (checksum verified)
+  as `/lib/firmware/updates/i915/mtl_guc_70.bin`; adds
+  `/etc/udev/rules.d/61-mutter-ignore-nvidia.rules` and
+  `/etc/systemd/system/power-profiles-daemon.service.d/wait-dell-pc.conf`; switches NVIDIA to
+  on-demand (`prime-select`) and rebuilds the initramfs. Identical files set up by hand before are
+  taken over, so removing the feature undoes them too. Restart after installing or removing it.
+- **AirDrop:** builds [omdrop-owl](https://github.com/t4t5/omdrop-owl) (AWDL, the Wi-Fi link AirDrop
+  runs on, through [OWL](https://github.com/seemoo-lab/owl)) and installs it with `apt`, with the
+  tools to build it (`build-essential cmake pkg-config dpkg-dev libev-dev libpcap-dev libnl-3-dev
+  libnl-genl-3-dev libnl-route-3-dev`) and what it needs to run (`iw`, `python3-zeroconf`,
+  `python3-libarchive-c`, ...). The package adds a root helper in `/usr/lib/omdrop`, a polkit rule
+  that lets you turn AirDrop on without a password, a NetworkManager rule and a udev `.link` file.
+  On Intel cards it also writes `/etc/omdrop/tx-rate` and `/etc/omdrop/election-metric`. If `ufw`
+  is installed, one rule allows TCP port 8771 on `awdl0` from link-local addresses only. The
+  receiver, [omdrop](https://github.com/netmojo-systems/omdrop-plugin)'s patched to ask before
+  accepting anything, runs as you.
 
-**If the login screen ever doesn't appear:** press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F3</kbd>,
-log in, run `./install.sh --uninstall --only login-screen` from this folder, then `sudo reboot`.
+## Troubleshooting
 
-## Notes
-
-- **App icons:** installed an app later and its icon doesn't match? Run
+- **The login screen doesn't appear:** press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F3</kbd>, log in,
+  run `./install.sh --uninstall --only login-screen` from this folder, then `sudo reboot`.
+- **Gestures don't work:** log out and back in once; they need the Wayland session the Touchpad
+  feature sets.
+- **A newly installed app's icon doesn't match:** run
   `~/.local/share/like-a-mac/src/MacOS-Like/setup.sh --source MacTahoe-Bold`.
 - **Apps that were already open** keep their old look until you restart them.
-- **SF Mono** (Apple's terminal font) can't be shared here. If you have it, put the `.otf`
-  files in `fonts/sf-mono/` before installing the Terminal part and it will be used.
-- Logs from each part are in `~/.local/share/like-a-mac/`.
+- **Terminal font:** Apple's SF Mono can't be shared here. If you have it, put its `.otf` files in
+  `fonts/sf-mono/` before installing the Terminal feature and it's used.
+- **Logs:** every feature writes one to `~/.local/share/like-a-mac/`.
+
+## For developers
+
+```
+install.sh            the installer: the list, the password once, runs the features
+lib/common.sh         shared helpers: save and restore settings, track files, extensions
+components/NN-id.sh   one file per feature; NN sets the order
+assets/<id>/          files a feature installs: CSS, services, configs, patches
+extensions/           GNOME Shell extensions made for this project (Spotlight, Downloads stack)
+docs/images/          pictures for this README
+```
+
+**Adding a feature** means adding one file, `components/NN-id.sh`; the installer finds it by
+itself:
+
+```sh
+ID=my-feature
+TITLE="My feature"
+DESC="one line shown in the list"
+DEFAULT=on            # ticked in the list from the start
+APT=(some-package)    # packages it needs, installed together up front
+# SUDO=1              # it runs sudo itself; the password is then asked once, up front
+# NEEDS="theme-sync"  # internal features it builds on
+
+component_supported() {   # optional: say why it can't run here, and return 1
+  [[ "$SHELL_MAJOR" == 46 ]] || { echo "made for GNOME 46"; return 1; }
+}
+
+component_install() {
+  set_key /org/gnome/desktop/interface/clock-show-seconds true   # old value saved first
+  track_path "$HOME/.local/share/my-feature"                    # removed on uninstall
+  mkdir -p "$HOME/.local/share/my-feature"
+  ext_use some-extension@author                                  # installed and enabled
+  ok "my feature set"
+}
+
+component_uninstall() { :; }   # settings, files and extensions are undone for you
+```
+
+Use the helpers in `lib/common.sh` (`set_key`, `backup_file`, `track_path`, `ext_use`,
+`fetch_repo`, `say`/`ok`/`warn`/`die`) and record a change **before** making it, so uninstall can
+always undo it, even after a failed install. A feature that changes system files keeps its own
+record in `~/.local/share/like-a-mac/saved/<id>.*` and undoes it in `component_uninstall`.
+Spotlight's search logic has tests: `gjs -m extensions/spotlight/test-search.js`.
 
 ## Credits
 
 Built on [MacTahoe GTK theme](https://github.com/vinceliuice/MacTahoe-gtk-theme),
 [MacTahoe icons](https://github.com/vinceliuice/MacTahoe-icon-theme) and
 [WhiteSur cursors](https://github.com/vinceliuice/WhiteSur-cursors) by vinceliuice,
-[MacOS-Like](https://github.com/Scrimas/MacOS-Like) by Scrimas, and the GNOME extensions
-listed above by their authors. Not affiliated with Apple.
+[MacOS-Like](https://github.com/Scrimas/MacOS-Like) by Scrimas, the GNOME extensions listed above
+by their authors, and for AirDrop [omdrop-owl](https://github.com/t4t5/omdrop-owl),
+[omdrop](https://github.com/netmojo-systems/omdrop-plugin) and Seemoo Lab's
+[OWL](https://github.com/seemoo-lab/owl). Not affiliated with Apple.
 
 ## License
 

@@ -1,6 +1,6 @@
 ID=dock
 TITLE="Dock"
-DESC="bottom dock that hides, dots under open apps, blur, genie (magic lamp) minimize"
+DESC="bottom dock that hides, dots under open apps, genie (magic lamp) minimize, snappier animations"
 DEFAULT=on
 
 component_supported() {
@@ -26,17 +26,15 @@ component_install() {
 
   ext_use compiz-alike-magic-lamp-effect@hermes83.github.com || true
   ext_use blur-my-shell@aunetx && {
-    set_key $bms/dash-to-dock/blur true
-    set_key $bms/dash-to-dock/brightness 0.6
-    set_key $bms/dash-to-dock/sigma 30
-    set_key $bms/dash-to-dock/corner-radius 28
-    set_key $bms/dash-to-dock/static-blur true
-    set_key $bms/dash-to-dock/override-background false
-    set_key $bms/dash-to-dock/unblur-in-overview true
+    # Not on the dock: blurring it makes Blur my Shell and Ubuntu Dock fight over the dock's
+    # size ("Can't update stage views", dozens of times a second), which stutters
+    set_key $bms/dash-to-dock/blur false
     set_key $bms/overview/blur true
     set_key $bms/appfolder/blur true
     set_key $bms/appfolder/sigma 30
   }
+  # Snappier, closer to macOS: GNOME's animations at 0.6x their length
+  ext_use just-perfection-desktop@just-perfection && set_key /org/gnome/shell/extensions/just-perfection/animation 4
   ok "dock set"
 }
 

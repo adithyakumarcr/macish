@@ -1,0 +1,8 @@
+{
+  "uuid": "spotlight@adithya",
+  "name": "Spotlight",
+  "description": "A macOS-style search bar on Alt+Space: find apps, open websites and Google searches in Chrome, go to folders, see recent picks.",
+  "shell-version": ["46"],
+  "settings-schema": "org.gnome.shell.extensions.lam-spotlight",
+  "url": ""
+}

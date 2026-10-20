@@ -1,6 +1,7 @@
 ID=login-screen
 TITLE="Login screen"
-DESC="dark macOS-style login screen (asks for your password: changes a system file)"
+DESC="dark macOS-style login screen (changes a system file)"
+SUDO=1
 DEFAULT=off
 DEST_DIR=/usr/share/gnome-shell/theme/MacTahoe-GDM
 ALT_NAME=gdm-theme.gresource

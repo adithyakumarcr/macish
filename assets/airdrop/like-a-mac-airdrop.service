@@ -1,0 +1,19 @@
+# like_a_mac AirDrop receiver: answers /Discover, /Ask and /Upload on awdl0 as you, so
+# received files are yours. Not enabled: `like-a-mac-airdrop on` starts it for the window
+# and `off` stops it. @RECEIVER@, @KEYS@ and @DOWNLOADS@ are filled in by the installer.
+[Unit]
+Description=like_a_mac: AirDrop receiver (runs only while AirDrop is on)
+# awdl0 exists only while omdrop-owl's helper keeps the AWDL radio up.
+AssertPathExists=/sys/class/net/awdl0
+
+[Service]
+Type=simple
+# awdl0 appears a moment before its link-local address, which the receiver needs.
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 60); do ip -6 addr show dev awdl0 scope link 2>/dev/null | grep -q inet6 && exit 0; sleep 0.5; done; echo "awdl0 has no link-local address after 30 s" >&2; exit 1'
+ExecStart=/usr/bin/python3 "@RECEIVER@/bin/airdrop-serve.py" --iface awdl0 --port 8771 --keys "@KEYS@" --outdir "@DOWNLOADS@"
+Environment="AIRDROP_ASK_COMMAND=%h/.local/bin/like-a-mac-airdrop-notify ask"
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+# The TLS key is in this process's memory while it runs.
+LimitCORE=0

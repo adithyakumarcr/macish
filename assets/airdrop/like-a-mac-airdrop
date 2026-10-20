@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# AirDrop for like_a_mac: lets nearby iPhones, iPads and Macs send you files.
+#
+#   like-a-mac-airdrop on [MINUTES]   visible to Everyone (10 minutes unless given);
+#                                     Wi-Fi is off meanwhile, Ethernet stays up
+#   like-a-mac-airdrop off            hidden again; Wi-Fi reconnects
+#   like-a-mac-airdrop status
+#
+# Every transfer shows a notification with Accept and Decline; accepted files go to
+# the Downloads folder. The radio side is omdrop-owl (/usr/lib/omdrop), run through
+# pkexec; the receiver is the user service like-a-mac-airdrop.service.
+set -uo pipefail
+
+HELPER=/usr/lib/omdrop/omdrop-discoverable
+BIN="$(dirname "$(readlink -f "$0")")"
+RECEIVER=like-a-mac-airdrop.service
+TIMER=like-a-mac-airdrop-off        # transient timer that ends the window
+NOTICE=like-a-mac-airdrop-notice    # transient service showing "AirDrop is on"
+
+tell() {   # TITLE [BODY]
+  notify-send --app-name=AirDrop --icon=folder-download "$1" "${2:-}" 2> /dev/null || true
+  printf '%s\n' "$1${2:+: $2}" >&2
+}
+
+visible() { "$HELPER" status --json 2> /dev/null | grep -q '"visible": *true'; }
+
+usage() { sed -n '4,8p' "$0" | sed 's/^# \{0,1\}//'; }
+
+cmd_off() {
+  # Called from the timer and the notice too: never stop the unit we're running in.
+  local self units=() u
+  self="$(sed -n 's|.*/||p' /proc/self/cgroup | head -1)"
+  for u in "$TIMER.timer" "$NOTICE.service" "$RECEIVER"; do
+    [[ "$u" == "$self" ]] || units+=("$u")
+  done
+  systemctl --user stop "${units[@]}" 2> /dev/null
+  if [[ -x "$HELPER" ]] && visible; then
+    pkexec "$HELPER" stop > /dev/null || { tell "AirDrop could not be turned off" "Restarting the computer turns it off."; return 1; }
+  fi
+  return 0
+}
+
+cmd_on() {
+  local mins="${1:-10}" out rc
+  [[ "$mins" =~ ^[1-9][0-9]{0,3}$ ]] || { usage >&2; return 2; }
+  [[ -x "$HELPER" ]] || { tell "AirDrop isn't installed" "Run ./install.sh --only airdrop in like_a_mac."; return 1; }
+
+  # 0: visible now; 5: it already was, and the window now runs from here.
+  out="$(pkexec "$HELPER" start $(( mins * 60 )) 2>&1)"
+  rc=$?
+  if (( rc != 0 && rc != 5 )); then
+    out="$(tail -1 <<< "$out")"
+    tell "AirDrop could not turn on" "${out#omdrop-discoverable: }"
+    cmd_off > /dev/null
+    return 1
+  fi
+  if ! systemctl --user start "$RECEIVER"; then
+    tell "AirDrop could not turn on" "The receiver didn't start (journalctl --user -u $RECEIVER)."
+    cmd_off > /dev/null
+    return 1
+  fi
+
+  # The helper ends the radio side itself when the window is over; this timer comes just
+  # after it, so by then it only has the receiver and the notification left to stop.
+  systemctl --user stop "$TIMER.timer" "$NOTICE.service" 2> /dev/null
+  systemd-run --user --quiet --collect --unit="$TIMER" --on-active="$(( mins * 60 + 30 ))s" \
+    --timer-property=AccuracySec=1s "$BIN/like-a-mac-airdrop" off
+  systemd-run --user --quiet --collect --unit="$NOTICE" "$BIN/like-a-mac-airdrop" _notice "$mins"
+  echo "AirDrop is on for $mins minutes."
+}
+
+cmd_notice() {   # internal: the "AirDrop is on" notification; its Stop button turns AirDrop off
+  local what="$1 minutes"
+  [[ "$1" == 1 ]] && what="1 minute"
+  "$BIN/like-a-mac-airdrop-notify" notice "AirDrop is on" \
+    "Visible to Everyone for $what as “$(hostname -s)”. Wi-Fi is off until then." && cmd_off
+}
+
+cmd_status() {
+  if [[ -x "$HELPER" ]] && visible; then
+    "$HELPER" status --json | python3 -c '
+import json, sys
+s = json.load(sys.stdin)
+left = s.get("remaining")
+print("AirDrop is on" + (f", {(left + 59) // 60} min left" if left else "") + ".")'
+  else
+    echo "AirDrop is off."
+  fi
+}
+
+case "${1:-}" in
+  on) shift; cmd_on "$@" ;;
+  off) cmd_off ;;
+  status) cmd_status ;;
+  _notice) cmd_notice "${2:?}" ;;
+  -h|--help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

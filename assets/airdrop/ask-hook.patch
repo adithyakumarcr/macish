@@ -1,0 +1,77 @@
+diff --git a/bin/airdrop-serve.py b/bin/airdrop-serve.py
+index ffbdb3f..4d6d9b5 100755
+--- a/bin/airdrop-serve.py
++++ b/bin/airdrop-serve.py
+@@ -21,6 +21,7 @@ import os
+ import plistlib
+ import pwd
+ import re
++import shlex
+ import signal
+ import ssl
+ import stat as stat_mod
+@@ -762,6 +763,49 @@ def store_link(url, dest):
+ MEDIA_CAPABILITIES = b'{"SupportsAdjustmentBaseResources":true,"Version":3,"Codecs":{"hvc1":{"Profiles":{"VTIsHDRAllowedOnDevice":true,"VTSupportedProfiles":[1,2,3,4],"VTDoViIsHardwareAccelerated":true,"VTDoViSupportedLevels":["01","02","03","04","05","06","07","08","09"],"VTPerProfileSupport":{"3":{"VTMaxPlaybackLevel":186,"VTIsHardwareAccelerated":true,"VTMaxDecodeLevel":186},"1":{"VTMaxPlaybackLevel":186,"VTIsHardwareAccelerated":true,"VTMaxDecodeLevel":186},"4":{"VTMaxPlaybackLevel":186,"VTIsHardwareAccelerated":true,"VTMaxDecodeLevel":186},"2":{"VTMaxPlaybackLevel":186,"VTIsHardwareAccelerated":true,"VTMaxDecodeLevel":186}},"VTDoViSupportedProfiles":["05","08"]}},"CodecSupport":{"VTIsHDRAllowedOnDevice":true,"VTCodecSupportDict":{"apcs":{"VTIsHardwareAccelerated":true},"hvc1":{"VTIsHDRAllowedOnDevice":true,"VTPerProfileSupport":{"3":{"VTMaxPlaybackLevel":186,"VTIsHardwareAccelerated":true,"VTMaxDecodeLevel":186},"1":{"VTMaxPlaybackLevel":186,"VTIsHardwareAccelerated":true,"VTMaxDecodeLevel":186},"4":{"VTMaxPlaybackLevel":186,"VTIsHardwareAccelerated":true,"VTMaxDecodeLevel":186},"2":{"VTMaxPlaybackLevel":186,"VTIsHardwareAccelerated":true,"VTMaxDecodeLevel":186}},"VTSupportedProfiles":[1,2,3,4]},"apcn":{"VTIsHardwareAccelerated":true},"apch":{"VTIsHardwareAccelerated":true},"apco":{"VTIsHardwareAccelerated":true},"ap4x":{"VTIsHardwareAccelerated":true},"ap4h":{"VTIsHardwareAccelerated":true}}}},"ContainerFormats":{"public.heif-standard":{"HeifSubtypes":["public.avci","public.avif","public.heic","public.heics","public.heif"]}},"Vendor":{"com.apple":{"LivePhotoFormatVersion":"1","AssetBundleFormatVersion":"1"}}}'
+ 
+ 
++# like_a_mac: every transfer is offered to the user first. AIRDROP_ASK_COMMAND
++# is run with the sender's name and what they're sending; exit status 0
++# accepts. Unset, failing or too slow means declined: nothing is received
++# without a yes.
++ASK_COMMAND = shlex.split(os.environ.get('AIRDROP_ASK_COMMAND', ''))
++ASK_TIMEOUT_SECONDS = 90
++
++
++def describe_ask(files, items):
++    """One file by name, or how many, with the total size the sender gave."""
++    files = [f for f in files if isinstance(f, dict)]
++    total = sum(f['FileSize'] for f in files if isinstance(f.get('FileSize'), int))
++    if len(files) == 1:
++        what = str(files[0].get('FileName') or 'a file')
++    elif files:
++        what = f'{len(files)} files'
++    else:
++        links = [i for i in items if isinstance(i, str)]
++        return links[0] if len(links) == 1 else f'{len(links)} links' if links else 'an item'
++    if not total:
++        return what
++    size, unit = float(total), 'bytes'
++    for unit in ('bytes', 'KB', 'MB', 'GB'):
++        if size < 1000 or unit == 'GB':
++            break
++        size /= 1000
++    return f'{what} ({size:.0f} {unit})' if unit == 'bytes' else f'{what} ({size:.1f} {unit})'
++
++
++def user_accepts(ask, files, items):
++    if not ASK_COMMAND:
++        logging.warning('AIRDROP_ASK_COMMAND is not set; declining')
++        return False
++    sender = str(ask.get('SenderComputerName') or 'An Apple device')
++    try:
++        run = subprocess.run(ASK_COMMAND + [sender, describe_ask(files, items)],
++                             stdin=subprocess.DEVNULL, timeout=ASK_TIMEOUT_SECONDS)
++    except (OSError, subprocess.TimeoutExpired) as e:
++        logging.warning('ask command failed (%r); declining', e)
++        return False
++    return run.returncode == 0
++
++
+ class Handler(BaseHTTPRequestHandler):
+     """AirDrop's receiving endpoints, as sharingd (AirDrop/1.0, macOS 15) and
+     iOS actually send them:
+@@ -987,6 +1031,14 @@ class Handler(BaseHTTPRequestHandler):
+             # so an Upload that never passed an Ask has nothing vouching for it.
+             self._contacts_ok = True
+ 
++        # like_a_mac: the user accepts or declines in a notification.
++        if not user_accepts(ask, files, items):
++            logging.info('ask declined')
++            self.send_response(403)
++            self.send_header('Content-Length', '0')
++            self.end_headers()
++            return
++
+         # A `links` transfer is Ask-only: with SUPPORTS_URL (0x01) advertised,
+         # iOS puts the URL straight into Items and sends no /Upload at all, so
+         # accepting the Ask IS the transfer. Store it, or the link is lost.

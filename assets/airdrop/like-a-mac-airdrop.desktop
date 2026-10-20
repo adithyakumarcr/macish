@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AirDrop
+Comment=Let nearby iPhones send you files for 10 minutes (Wi-Fi is off meanwhile)
+Exec="@BIN@" on
+Icon=folder-download
+Terminal=false
+Categories=Network;FileTransfer;
+Keywords=airdrop;iphone;share;receive;

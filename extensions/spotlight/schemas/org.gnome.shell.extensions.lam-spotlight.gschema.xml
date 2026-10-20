@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.lam-spotlight" path="/org/gnome/shell/extensions/lam-spotlight/">
+    <key name="toggle-spotlight" type="as">
+      <default><![CDATA[['<Alt>space']]]></default>
+      <summary>Open or close Spotlight</summary>
+    </key>
+  </schema>
+</schemalist>
