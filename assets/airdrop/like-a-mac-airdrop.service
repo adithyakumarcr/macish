@@ -1,8 +1,8 @@
-# like_a_mac AirDrop receiver: answers /Discover, /Ask and /Upload on awdl0 as you, so
+# macish AirDrop receiver: answers /Discover, /Ask and /Upload on awdl0 as you, so
 # received files are yours. Not enabled: `like-a-mac-airdrop on` starts it for the window
 # and `off` stops it. @RECEIVER@, @KEYS@ and @DOWNLOADS@ are filled in by the installer.
 [Unit]
-Description=like_a_mac: AirDrop receiver (runs only while AirDrop is on)
+Description=macish: AirDrop receiver (runs only while AirDrop is on)
 # awdl0 exists only while omdrop-owl's helper keeps the AWDL radio up.
 AssertPathExists=/sys/class/net/awdl0
 

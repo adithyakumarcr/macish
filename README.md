@@ -1,4 +1,4 @@
-# like_a_mac
+# macish
 
 **Make your Ubuntu look, and work, like a Mac.**
 
@@ -6,7 +6,7 @@
 ![GNOME 46](https://img.shields.io/badge/GNOME-46-4A86CF?logo=gnome&logoColor=white)
 ![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue)
 
-like_a_mac turns a standard Ubuntu desktop into a macOS Tahoe look-alike, one feature at a time:
+macish turns a standard Ubuntu desktop into a macOS Tahoe look-alike, one feature at a time:
 the theme, icons, dock and menu bar, but also the things you'd miss from a Mac, such as Spotlight on
 <kbd>Alt</kbd>+<kbd>Space</kbd>, trackpad gestures, three-finger drag, and receiving files from an
 iPhone over AirDrop. You choose the features from a list, and every one of them can be removed
@@ -68,8 +68,8 @@ icons, top bar and Control Center along with it.
 ## Quick start
 
 ```sh
-git clone https://github.com/adithyakumarcr/like_a_mac.git
-cd like_a_mac
+git clone https://github.com/adithyakumarcr/macish.git
+cd macish
 ./install.sh
 ```
 

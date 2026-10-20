@@ -16,7 +16,7 @@ component_install() {
     cp -a "$HOME/.themes/MacTahoe-$Mode-solid" "$dst"
     sed -i "s/MacTahoe-$Mode-solid/LikeAMac-$Mode/g" "$dst/index.theme"
     css="$dst/gnome-shell/gnome-shell.css"
-    printf '\n/* ---- like_a_mac ---- */\n#panel { height: 32px !important; }\n' >> "$css"
+    printf '\n/* ---- macish ---- */\n#panel { height: 32px !important; }\n' >> "$css"
     for part in top-bar control-center; do
       if is_installed "$part"; then
         printf '\n' >> "$css"

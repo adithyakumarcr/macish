@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# like_a_mac — make Ubuntu (GNOME) look like macOS. Pick the parts you want.
+# macish — make Ubuntu (GNOME) look like macOS. Pick the parts you want.
 #
 #   ./install.sh                     choose what to install from a menu
 #   ./install.sh --only icons,dock   install just these
@@ -142,7 +142,7 @@ choose() {   # prints the chosen ids, one per line
     if [[ "$ACTION" == uninstall ]]; then has_state "$id" && candidates+=("$id")
     else [[ -z "${C_UNSUPPORTED[$id]}" ]] && candidates+=("$id"); fi
   done
-  (( ${#candidates[@]} )) || { [[ "$ACTION" == uninstall ]] && echo "Nothing from like_a_mac is installed." >&2; return 0; }
+  (( ${#candidates[@]} )) || { [[ "$ACTION" == uninstall ]] && echo "Nothing from macish is installed." >&2; return 0; }
 
   if [[ -n "$ONLY" ]]; then
     tr ',' '\n' <<< "$ONLY"; return

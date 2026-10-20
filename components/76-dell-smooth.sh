@@ -28,7 +28,7 @@ own_file() {
   local src="$1" dst="$2" rec="$LAM_SAVED/$COMPONENT.$RECORD_NAME"
   if [[ -e "$dst" ]] && ! grep -qxF "file $dst" "$rec" 2>/dev/null; then
     if ! cmp -s "$src" "$dst"; then
-      warn "$dst is someone else's and differs from like_a_mac's; left as it is"
+      warn "$dst is someone else's and differs from macish's; left as it is"
       return 0
     fi
   elif ! cmp -s "$src" "$dst" 2>/dev/null; then
@@ -74,7 +74,7 @@ component_install() {
     sudo update-initramfs -u
     ok "done: restart the computer to load the new firmware and GPU settings"
   else
-    ok "already set up on this computer; like_a_mac now looks after it"
+    ok "already set up on this computer; macish now looks after it"
   fi
 }
 

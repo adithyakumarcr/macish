@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AirDrop for like_a_mac: lets nearby iPhones, iPads and Macs send you files.
+# AirDrop for macish: lets nearby iPhones, iPads and Macs send you files.
 #
 #   like-a-mac-airdrop on [MINUTES]   visible to Everyone (10 minutes unless given);
 #                                     Wi-Fi is off meanwhile, Ethernet stays up
@@ -43,7 +43,7 @@ cmd_off() {
 cmd_on() {
   local mins="${1:-10}" out rc
   [[ "$mins" =~ ^[1-9][0-9]{0,3}$ ]] || { usage >&2; return 2; }
-  [[ -x "$HELPER" ]] || { tell "AirDrop isn't installed" "Run ./install.sh --only airdrop in like_a_mac."; return 1; }
+  [[ -x "$HELPER" ]] || { tell "AirDrop isn't installed" "Run ./install.sh --only airdrop in macish."; return 1; }
 
   # 0: visible now; 5: it already was, and the window now runs from here.
   out="$(pkexec "$HELPER" start $(( mins * 60 )) 2>&1)"

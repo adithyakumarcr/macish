@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep the Mac-style look in sync with GNOME's Light/Dark setting (part of like_a_mac).
+"""Keep the Mac-style look in sync with GNOME's Light/Dark setting (part of macish).
 
 Watches org.gnome.desktop.interface color-scheme and switches, for the parts that are installed:
   * app-theme       GTK3 theme MacTahoe-Light-solid / MacTahoe-Dark-solid,

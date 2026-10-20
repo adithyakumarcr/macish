@@ -1,4 +1,4 @@
-# Shared helpers for like_a_mac components. Sourced by install.sh.
+# Shared helpers for macish components. Sourced by install.sh.
 # shellcheck shell=bash
 
 LAM_STATE="${XDG_DATA_HOME:-$HOME/.local/share}/like-a-mac"

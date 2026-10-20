@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AirDrop notifications with buttons, for like_a_mac.
+"""AirDrop notifications with buttons, for macish.
 
   like-a-mac-airdrop-notify ask SENDER WHAT     Accept / Decline; exits 0 only on Accept.
                                                 No answer in 60 s counts as Decline.

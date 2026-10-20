@@ -11,7 +11,7 @@ function eq(actual, expected, what) {
 }
 
 // web addresses
-for (const t of ['github.com', 'github.com/adithyakumarcr/like_a_mac', 'https://x.org', 'localhost:8080',
+for (const t of ['github.com', 'github.com/adithyakumarcr/macish', 'https://x.org', 'localhost:8080',
     'localhost', '192.168.1.10:3000/a', 'docs.python.org/3/', 'en.wikipedia.org/wiki/Mac?x=1', 'HTTP://A.B'])
     eq(S.looksLikeUrl(t), true, `url: ${t}`);
 for (const t of ['terminal', 'how to install docker', 'file.txt2', 'v1.2', 'a.b c', '~/Downloads', '/usr/bin',
