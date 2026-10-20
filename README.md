@@ -7,9 +7,9 @@
 ![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue)
 
 macish turns a standard Ubuntu desktop into a macOS Tahoe look-alike, one feature at a time:
-the theme, icons, dock and menu bar, but also the things you'd miss from a Mac, such as Spotlight on
-<kbd>Alt</kbd>+<kbd>Space</kbd>, trackpad gestures, three-finger drag, and receiving files from an
-iPhone over AirDrop. You choose the features from a list, and every one of them can be removed
+the theme, icons, dock and menu bar, but also the things you'd miss from a Mac: Command, Option
+and Control where a Mac has them, with Cmd+C, Cmd+Tab and the other shortcuts; Spotlight;
+trackpad gestures and three-finger drag; and receiving files from an iPhone over AirDrop. You choose the features from a list, and every one of them can be removed
 again, putting your earlier settings back.
 
 ![The installer: tick the features you want, then press Enter](docs/images/installer.png)
@@ -20,6 +20,7 @@ again, putting your earlier settings back.
 - [Quick start](#quick-start)
 - [Using the installer](#using-the-installer)
 - [Requirements](#requirements)
+- [Mac keyboard](#mac-keyboard)
 - [AirDrop](#airdrop)
 - [Uninstalling](#uninstalling)
 - [What it changes on your system](#what-it-changes-on-your-system)
@@ -51,8 +52,9 @@ again, putting your earlier settings back.
 | Feature | id | What you get | Default |
 |---|---|---|---|
 | Touchpad | `touchpad` | tap to click, natural scrolling, two-finger click or tap for right-click, ignored while typing. Gestures through [Touchpad Gesture Customization](https://extensions.gnome.org/extension/7850/): three or four fingers sideways switch desktops, up and down open the overview, a four-finger pinch shows the desktop | on |
+| Mac keyboard | `keyboard` | the keys next to the space bar work like a Mac's: Ctrl, Win, Alt become Control, Option, Command. Cmd+C, Cmd+Tab, Cmd+Space, Cmd+Q, text navigation and more ([details](#mac-keyboard)) | on |
 | Three-finger drag | `three-finger-drag` | drag windows and select text with three fingers (newer libinput from a PPA, Ubuntu 24.04 only) | on |
-| Spotlight | `spotlight` | <kbd>Alt</kbd>+<kbd>Space</kbd> opens a search bar: apps, websites and Google searches in Chrome, folders (type `~/` or `/`, <kbd>Tab</kbd> goes in), recent searches | on |
+| Spotlight | `spotlight` | <kbd>Alt</kbd>+<kbd>Space</kbd> (Cmd+Space with the Mac keyboard: the same keys) opens a search bar: apps, websites and Google searches in Chrome, folders (type `~/` or `/`, <kbd>Tab</kbd> goes in), recent searches | on |
 | AirDrop | `airdrop` | receive files from iPhones, iPads and Macs over real AirDrop, with Accept and Decline in a notification ([details](#airdrop)) | off |
 
 **For one laptop**
@@ -112,7 +114,40 @@ versions this was tested with; `LIKE_A_MAC_LATEST=1 ./install.sh` uses their new
 - An internet connection: themes and icons come from their upstream projects, extensions from
   [extensions.gnome.org](https://extensions.gnome.org).
 - **Gestures need Wayland.** The Touchpad feature sets your login to "Ubuntu on Wayland".
+- **The Mac keyboard** needs GNOME 45 or newer, and no other key remapper (Toshy, keyd) running.
 - **AirDrop** needs a [Wi-Fi card that omdrop-owl supports](https://github.com/t4t5/omdrop-owl#supported-hardware).
+
+## Mac keyboard
+
+![Ctrl is Control, Win is Option, Alt is Command](docs/images/keyboard.png)
+
+The keys next to the space bar take the Mac's roles: **Ctrl** is Control, **Win** is Option and
+**Alt** is Command (Apple keyboards keep their own Command and Option). Command works like Ctrl
+from the moment it's pressed, so Cmd+click and Cmd+scroll work too, and these Mac shortcuts are
+translated:
+
+| Mac shortcut | Does |
+|---|---|
+| Cmd + any key | what Ctrl + that key does: copy, paste, cut, undo, save, find, new, open, select all, ... |
+| Cmd+C / V / X / T / N / W / F in a terminal | the terminal's copy, paste, new tab and so on (Ctrl+Shift); Control+C still interrupts |
+| Cmd+Q | quit the app |
+| Cmd+H, Cmd+M | hide / minimize the window |
+| Cmd+Tab, Cmd+Shift+Tab, Cmd+` | switch apps (hold Command), backwards, windows of the same app |
+| Cmd+Space | Spotlight |
+| Ctrl+← / Ctrl+→, Ctrl+↑ | switch desktop, show all windows (Mission Control) |
+| Ctrl+Cmd+Q, Ctrl+Cmd+F | lock the screen, full screen |
+| Cmd+Shift+3 / 4 / 5 | screenshot of the whole screen / an area / the screenshot tool |
+| Cmd+← / → / ↑ / ↓ | start / end of the line, top / bottom (with Shift: select) |
+| Option+← / → | a word left / right (with Shift: select) |
+| Cmd+Backspace, Option+Backspace, Option+Delete | delete to the line start, the word before, the word after |
+| Cmd+[ / Cmd+], Cmd+Option+I | back / forward, developer tools (browsers) |
+| Cmd+Shift+[ / ] | previous / next tab |
+| Cmd+Backspace, Cmd+↑, Cmd+↓, Cmd+Shift+. | in Files: move to Trash, parent folder, open, show hidden files |
+
+**Ctrl+Win+Alt+Esc** (Control+Option+Command+Esc) switches Mac mode off and on. A small service
+does the translating; if it ever stops, the keyboards are plain PC keyboards again straight
+away, and nothing stays held down. Log out and back in once after installing, so the shortcuts
+that depend on the app in front (Terminal, browsers, Files) know which one it is.
 
 ## AirDrop
 
@@ -150,20 +185,30 @@ stopped halfway shows as **partly installed** in `--list`, and can still be remo
 - Themes, icons and extensions go into `~/.themes` and `~/.local/share/...`. Extensions come from
   [extensions.gnome.org](https://extensions.gnome.org): User Themes, Blur my Shell, Just
   Perfection, Logo Menu, Compiz alike Magic Lamp Effect, Quick Settings Tweaks and Touchpad Gesture
-  Customization.
+  Customization. macish's own (Spotlight, Downloads stack and the Mac keyboard's helper) come from
+  `extensions/` in this repo.
 - Settings are changed with `dconf`. The old value of every key is saved in
   `~/.local/share/like-a-mac/saved/` and put back on uninstall.
 
 **With `sudo`**, asked once up front:
 
 - **Packages:** `apt install` of only what the chosen features need (`git sassc
-  libglib2.0-dev-bin libxml2-utils python3-pil librsvg2-bin rsync fonts-inter terminator`).
+  libglib2.0-dev-bin libxml2-utils python3-pil librsvg2-bin rsync fonts-inter terminator
+  python3-evdev`).
 - **Login screen:** adds its theme under `/usr/share/gnome-shell/theme/MacTahoe-GDM` and points
   Ubuntu's `gdm-theme.gresource` setting at it. Ubuntu's own theme file is never modified.
 - **Three-finger drag:** adds the
   [ubuntuhandbook1/libinput](https://launchpad.net/~ubuntuhandbook1/+archive/ubuntu/libinput) PPA
   and upgrades the installed `libinput*` packages from it. Removing it removes the PPA and puts
   Ubuntu's libinput back. A PPA added by hand before is taken over, so it goes too.
+- **Mac keyboard:** installs `python3-evdev`, the service `/usr/local/lib/macish/macish-keys`
+  and `/etc/systemd/system/macish-keys.service`. It runs as root, so no program of yours needs
+  access to your keystrokes; the only thing it reads from your session is the name of the app in
+  front, which the `macish-keys` extension writes to `/run/user/<you>/macish-keys/focus`. The GNOME
+  shortcuts it sends (Super+Tab, Super+H, Print, ...) are added where missing and put back on
+  uninstall. If Toshy's leftovers are there (`/etc/udev/rules.d/70-toshy-keymapper-input.rules`
+  and membership of the `input` group, which let any program read your keystrokes), they're
+  removed and not put back.
 - **Dell 14 Premium smoothness:** installs Intel's GPU firmware `mtl_guc_70.bin` from
   [linux-firmware](https://gitlab.com/kernel-firmware/linux-firmware) 20260410 (checksum verified)
   as `/lib/firmware/updates/i915/mtl_guc_70.bin`; adds
@@ -188,6 +233,10 @@ stopped halfway shows as **partly installed** in `--list`, and can still be remo
   run `./install.sh --uninstall --only login-screen` from this folder, then `sudo reboot`.
 - **Gestures don't work:** log out and back in once; they need the Wayland session the Touchpad
   feature sets.
+- **A Mac shortcut does something odd:** press <kbd>Ctrl</kbd>+<kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>Esc</kbd>
+  for plain PC keys (the same keys switch Mac mode back on), then see `journalctl -u macish-keys`.
+- **Cmd+C doesn't copy in a terminal**, or browser and Files shortcuts act like everywhere else:
+  log out and back in once after installing the Mac keyboard, so it knows the app in front.
 - **A newly installed app's icon doesn't match:** run
   `~/.local/share/like-a-mac/src/MacOS-Like/setup.sh --source MacTahoe-Bold`.
 - **Apps that were already open** keep their old look until you restart them.
@@ -202,8 +251,9 @@ install.sh            the installer: the list, the password once, runs the featu
 lib/common.sh         shared helpers: save and restore settings, track files, extensions
 components/NN-id.sh   one file per feature; NN sets the order
 assets/<id>/          files a feature installs: CSS, services, configs, patches
-extensions/           GNOME Shell extensions made for this project (Spotlight, Downloads stack)
-docs/images/          pictures for this README
+extensions/           GNOME Shell extensions made for this project (Spotlight, Downloads stack,
+                      the Mac keyboard's app-in-front helper)
+docs/images/          the pictures in this README
 ```
 
 **Adding a feature** means adding one file, `components/NN-id.sh`; the installer finds it by
@@ -237,7 +287,8 @@ Use the helpers in `lib/common.sh` (`set_key`, `backup_file`, `track_path`, `ext
 `fetch_repo`, `say`/`ok`/`warn`/`die`) and record a change **before** making it, so uninstall can
 always undo it, even after a failed install. A feature that changes system files keeps its own
 record in `~/.local/share/like-a-mac/saved/<id>.*` and undoes it in `component_uninstall`.
-Spotlight's search logic has tests: `gjs -m extensions/spotlight/test-search.js`.
+Tests: `gjs -m extensions/spotlight/test-search.js` (Spotlight's search) and
+`python3 assets/keyboard/test-macish-keys.py` (every Mac keyboard shortcut).
 
 ## Credits
 

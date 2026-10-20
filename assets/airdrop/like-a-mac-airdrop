@@ -22,7 +22,8 @@ tell() {   # TITLE [BODY]
   printf '%s\n' "$1${2:+: $2}" >&2
 }
 
-visible() { "$HELPER" status --json 2> /dev/null | grep -q '"visible": *true'; }
+# Read first, then match: "| grep -q" can fail under pipefail when grep stops reading early
+visible() { [[ "$("$HELPER" status --json 2> /dev/null)" =~ \"visible\":\ *true ]]; }
 
 usage() { sed -n '4,8p' "$0" | sed 's/^# \{0,1\}//'; }
 

@@ -1,6 +1,6 @@
 ID=spotlight
 TITLE="Spotlight"
-DESC="Alt+Space opens a search bar: apps, websites in Chrome, folders, recent searches"
+DESC="Alt+Space (Cmd+Space) opens a search bar: apps, websites, folders, recent searches"
 DEFAULT=on
 UUID=spotlight@adithya
 APT=(libglib2.0-bin)

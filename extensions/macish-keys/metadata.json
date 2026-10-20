@@ -1,0 +1,7 @@
+{
+  "uuid": "macish-keys@adithya",
+  "name": "macish keyboard helper",
+  "description": "Tells macish's Mac keyboard service which app is in front.",
+  "shell-version": ["45", "46", "47", "48"],
+  "url": "https://github.com/adithyakumarcr/macish"
+}

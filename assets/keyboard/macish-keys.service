@@ -1,0 +1,22 @@
+# macish: a Mac keyboard (Control, Option, Command). Runs as root so that no program of yours
+# needs access to your keystrokes; @UID@ (whose app in front it follows) is filled in by the
+# installer. If it stops, the keyboards are plain PC keyboards again.
+[Unit]
+Description=macish: Mac keyboard (Control, Option, Command)
+After=systemd-udevd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/lib/macish/macish-keys --uid @UID@
+Restart=on-failure
+RestartSec=1
+# It needs the keyboards and /dev/uinput, and to read one file in your runtime folder
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target
