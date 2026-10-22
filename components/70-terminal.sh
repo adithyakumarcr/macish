@@ -43,6 +43,7 @@ component_install() {
     set_key $bms/applications/opacity 255
     set_key $bms/applications/corner-radius 12
     set_key $bms/applications/dynamic-opacity false
+    set_key $bms/popup/blur false   # see 40-top-bar.sh
     set_key $bms/applications/blur-on-overview false
   }
   ok "Terminator styled (font: $font)"

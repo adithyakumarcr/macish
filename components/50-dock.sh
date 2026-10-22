@@ -32,6 +32,7 @@ component_install() {
     set_key $bms/overview/blur true
     set_key $bms/appfolder/blur true
     set_key $bms/appfolder/sigma 30
+    set_key $bms/popup/blur false   # see 40-top-bar.sh
   }
   # Snappier, closer to macOS: GNOME's animations at 0.6x their length
   ext_use just-perfection-desktop@just-perfection && set_key /org/gnome/shell/extensions/just-perfection/animation 4

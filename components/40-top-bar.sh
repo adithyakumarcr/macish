@@ -36,6 +36,9 @@ component_install() {
     set_key $bms/panel/static-blur true
     set_key $bms/panel/override-background true
     set_key $bms/panel/override-background-dynamically true
+    # Blur my Shell 76+ also restyles popups: it tags the whole shell (Main.uiGroup) with
+    # bms-popup-*, whose !important rules override the Control Center and every StEntry
+    set_key $bms/popup/blur false
   }
   set_key /org/gnome/desktop/interface/clock-show-weekday true
   set_key /org/gnome/desktop/interface/clock-show-date true
