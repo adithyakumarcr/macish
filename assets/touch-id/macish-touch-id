@@ -1,0 +1,9 @@
+Name: macish Touch ID: your fingerprint for sudo in a terminal and for admin prompts
+Default: no
+Priority: 260
+Conflicts: fprintd
+Auth-Type: Primary
+Auth:
+	[success=ignore default=2]	pam_succeed_if.so quiet service in sudo:sudo-i:polkit-1
+	[success=ignore default=1]	pam_exec.so quiet quiet_log /usr/local/lib/macish/touch-id-ready
+	[success=end default=ignore]	pam_fprintd.so max-tries=3 timeout=10

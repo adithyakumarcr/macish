@@ -9,8 +9,9 @@
 macish turns a standard Ubuntu desktop into a macOS Tahoe look-alike, one feature at a time:
 the theme, icons, dock and menu bar, but also the things you'd miss from a Mac: Command, Option
 and Control where a Mac has them, with Cmd+C, Cmd+Tab and the other shortcuts; Spotlight;
-trackpad gestures and three-finger drag; and receiving files from an iPhone over AirDrop. You choose the features from a list, and every one of them can be removed
-again, putting your earlier settings back.
+trackpad gestures and three-finger drag; Touch ID with your fingerprint reader; and receiving
+files from an iPhone over AirDrop. You choose the features from a list, and every one of them
+can be removed again, putting your earlier settings back.
 
 ![The installer: tick the features you want, then press Enter](docs/images/installer.png)
 
@@ -21,6 +22,7 @@ again, putting your earlier settings back.
 - [Using the installer](#using-the-installer)
 - [Requirements](#requirements)
 - [Mac keyboard](#mac-keyboard)
+- [Touch ID](#touch-id)
 - [AirDrop](#airdrop)
 - [Uninstalling](#uninstalling)
 - [What it changes on your system](#what-it-changes-on-your-system)
@@ -53,6 +55,7 @@ again, putting your earlier settings back.
 |---|---|---|---|
 | Touchpad | `touchpad` | tap to click, natural scrolling, two-finger click or tap for right-click, ignored while typing. Gestures through [Touchpad Gesture Customization](https://extensions.gnome.org/extension/7850/): three or four fingers sideways switch desktops, up and down open the overview, a four-finger pinch shows the desktop | on |
 | Mac keyboard | `keyboard` | the keys next to the space bar work like a Mac's: Ctrl, Win, Alt become Control, Option, Command. Cmd+C, Cmd+Tab, Cmd+Space, Cmd+Q, text navigation and more ([details](#mac-keyboard)) | on |
+| Touch ID | `touch-id` | your fingerprint logs you in, unlocks the screen, and approves sudo in a terminal and admin prompts ([details](#touch-id)) | on |
 | Three-finger drag | `three-finger-drag` | drag windows and select text with three fingers (newer libinput from a PPA, Ubuntu 24.04 only) | on |
 | Spotlight | `spotlight` | <kbd>Alt</kbd>+<kbd>Space</kbd> (Cmd+Space with the Mac keyboard: the same keys) opens a search bar: apps, websites and Google searches in Chrome, folders (type `~/` or `/`, <kbd>Tab</kbd> goes in), recent searches | on |
 | AirDrop | `airdrop` | receive files from iPhones, iPads and Macs over real AirDrop, with Accept and Decline in a notification ([details](#airdrop)) | off |
@@ -115,6 +118,9 @@ versions this was tested with; `LIKE_A_MAC_LATEST=1 ./install.sh` uses their new
   [extensions.gnome.org](https://extensions.gnome.org).
 - **Gestures need Wayland.** The Touchpad feature sets your login to "Ubuntu on Wayland".
 - **The Mac keyboard** needs GNOME 45 or newer, and no other key remapper (Toshy, keyd) running.
+- **Touch ID** needs a fingerprint reader that
+  [libfprint supports](https://fprint.freedesktop.org/supported-devices.html); the installer offers
+  it only when there is one.
 - **AirDrop** needs a [Wi-Fi card that omdrop-owl supports](https://github.com/t4t5/omdrop-owl#supported-hardware).
 
 ## Mac keyboard
@@ -149,6 +155,28 @@ translated:
 does the translating; if it ever stops, the keyboards are plain PC keyboards again straight
 away, and nothing stays held down. Log out and back in once after installing, so the shortcuts
 that depend on the app in front (Terminal, browsers, Files) know which one it is.
+
+## Touch ID
+
+Installing Touch ID saves your right index finger the way a Mac sets it up: rest it on the
+sensor, lift it, and rest it again until every dot is filled (if the sensor is in the power
+button, rest your finger without pressing). From then on your fingerprint works here:
+
+| Where | How |
+|---|---|
+| Login screen | pick your name, then touch the sensor or type your password |
+| Lock screen | touch the sensor, or type your password |
+| sudo in a terminal | touch the sensor; after 10 seconds, or three misses, it asks for your password |
+| Admin prompts (installing apps, unlocking Settings, `pkexec`) | touch the sensor; the password field comes after 10 seconds |
+
+- **After a fingerprint login, your saved passwords are still locked.** Ubuntu's keyring opens
+  only with your password, so the first app that needs one (Chrome, Wi-Fi, an email account)
+  asks for it once. Type your password at the login screen to skip that.
+- **Lid closed**, as on a dock: sudo and admin prompts ask for your password straight away.
+- **sudo takes a finger only in a terminal.** A program running sudo out of sight gets the
+  password prompt, so a touch meant for something else can't approve it.
+- **More fingers:** Settings → System → Users → Fingerprint Login. Fingers you add there stay
+  when you remove Touch ID; the one macish saved is deleted.
 
 ## AirDrop
 
@@ -195,7 +223,7 @@ stopped halfway shows as **partly installed** in `--list`, and can still be remo
 
 - **Packages:** `apt install` of only what the chosen features need (`git sassc
   libglib2.0-dev-bin libxml2-utils python3-pil librsvg2-bin rsync fonts-inter terminator
-  python3-evdev`).
+  python3-evdev fprintd libpam-fprintd`).
 - **Login screen:** adds its theme under `/usr/share/gnome-shell/theme/MacTahoe-GDM` and points
   Ubuntu's `gdm-theme.gresource` setting at it. Ubuntu's own theme file is never modified.
 - **Three-finger drag:** adds the
@@ -210,6 +238,16 @@ stopped halfway shows as **partly installed** in `--list`, and can still be remo
   uninstall. If Toshy's leftovers are there (`/etc/udev/rules.d/70-toshy-keymapper-input.rules`
   and membership of the `input` group, which let any program read your keystrokes), they're
   removed and not put back.
+- **Touch ID:** adds `/usr/share/pam-configs/macish-touch-id` and turns it on with Ubuntu's
+  `pam-auth-update`, which puts three lines in `/etc/pam.d/common-auth`. Only for `sudo`,
+  `sudo -i` and polkit (admin prompts), the helper `/usr/local/lib/macish/touch-id-ready` decides
+  whether to ask for a fingerprint (in a terminal, lid open), then `pam_fprintd` does; everything
+  else (the login screen's password, `su`, ssh) goes to your password as before. The login and
+  lock screens take the fingerprint through GDM's own `gdm-fingerprint`. If Ubuntu's fingerprint
+  profile was on, it's off while this one is, and comes back on removal. Your fingerprint stays
+  on this computer: fprintd keeps it in `/var/lib/fprint` (root only), and readers that match on
+  the chip, like Goodix's, keep it on the sensor. Removing the feature deletes the finger macish
+  saved.
 - **Dell 14 Premium smoothness:** installs Intel's GPU firmware `mtl_guc_70.bin` from
   [linux-firmware](https://gitlab.com/kernel-firmware/linux-firmware) 20260410 (checksum verified)
   as `/lib/firmware/updates/i915/mtl_guc_70.bin`; adds
@@ -238,6 +276,10 @@ stopped halfway shows as **partly installed** in `--list`, and can still be remo
   for plain PC keys (the same keys switch Mac mode back on), then see `journalctl -u macish-keys`.
 - **Cmd+C doesn't copy in a terminal**, or browser and Files shortcuts act like everywhere else:
   log out and back in once after installing the Mac keyboard, so it knows the app in front.
+- **Touch ID can't save your finger** ("the sensor already has this finger" or "memory is
+  full"): another account, or Windows on the same laptop, saved fingers on the sensor. Delete
+  them there, then run `./install.sh --only touch-id` again. `fprintd-list $USER` shows what
+  Linux sees.
 - **A newly installed app's icon doesn't match:** run
   `~/.local/share/like-a-mac/src/MacOS-Like/setup.sh --source MacTahoe-Bold`.
 - **Apps that were already open** keep their old look until you restart them.

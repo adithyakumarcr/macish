@@ -1,0 +1,16 @@
+#!/bin/sh
+# macish Touch ID: may this sudo or admin prompt ask for a fingerprint? Exit 0 for yes.
+# pam_exec runs it as root (see /usr/share/pam-configs/macish-touch-id); any other answer,
+# or none, means the usual password prompt.
+
+# sudo only in a terminal: a program running sudo out of sight mustn't get a touch that was
+# meant for something else
+case "$PAM_SERVICE" in
+  sudo|sudo-i) case "$PAM_TTY" in /dev/*) ;; *) exit 1 ;; esac ;;
+esac
+
+# Lid closed, as on a dock: the sensor can't be reached, so the password straight away
+for state in /proc/acpi/button/lid/*/state; do
+  [ -r "$state" ] && grep -q closed "$state" && exit 1
+done
+exit 0
