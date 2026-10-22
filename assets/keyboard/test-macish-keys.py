@@ -74,7 +74,18 @@ expect('Command+C is Ctrl+C', kb.combo('C'), '+C -C')
 expect('letting go of Command', kb.release('LEFTALT'), '-RIGHTCTRL')
 expect('Option (Win) is Alt', kb.combo('LEFTMETA', 'F'), '+LEFTALT +F -F -LEFTALT')
 expect('Control stays Ctrl', kb.combo('LEFTCTRL', 'C'), '+LEFTCTRL +C -C -LEFTCTRL')
-expect('Right Alt is Command too', kb.combo('RIGHTALT', 'V'), '+RIGHTCTRL +V -V -RIGHTCTRL')
+expect('Right Alt stays AltGr', kb.combo('RIGHTALT', 'Q'), '+RIGHTALT +Q -Q -RIGHTALT')
+expect('AltGr+Shift passes', kb.combo('RIGHTALT', 'LEFTSHIFT', '7'),
+       '+RIGHTALT +LEFTSHIFT +7 -7 -LEFTSHIFT -RIGHTALT')
+expect('AltGr held down repeats like a plain key', kb.press('RIGHTALT') + kb.repeat('RIGHTALT')
+       + kb.release('RIGHTALT'), '+RIGHTALT ~RIGHTALT -RIGHTALT')
+expect('AltGr+arrow is no Mac shortcut', kb.combo('RIGHTALT', 'LEFT'),
+       '+RIGHTALT +LEFT -LEFT -RIGHTALT')
+expect_clean('AltGr', kb)
+kb = Kb(apple=True)
+expect('Apple: right Option is still Option', kb.combo('RIGHTALT', 'F'),
+       '+LEFTALT +F -F -LEFTALT')
+kb = Kb()
 expect('plain typing passes', kb.combo('A'), '+A -A')
 expect('Shift passes', kb.combo('LEFTSHIFT', 'A'), '+LEFTSHIFT +A -A -LEFTSHIFT')
 expect('Cmd+Shift+Z is Ctrl+Shift+Z (redo)', kb.combo('LEFTALT', 'LEFTSHIFT', 'Z'),

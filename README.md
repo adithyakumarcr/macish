@@ -122,7 +122,8 @@ versions this was tested with; `LIKE_A_MAC_LATEST=1 ./install.sh` uses their new
 ![Ctrl is Control, Win is Option, Alt is Command](docs/images/keyboard.png)
 
 The keys next to the space bar take the Mac's roles: **Ctrl** is Control, **Win** is Option and
-**Alt** is Command (Apple keyboards keep their own Command and Option). Command works like Ctrl
+**Alt** is Command. The right Alt stays **AltGr**, so @, €, { and [ type as before on German and
+other layouts (Apple keyboards keep their own Command and Option). Command works like Ctrl
 from the moment it's pressed, so Cmd+click and Cmd+scroll work too, and these Mac shortcuts are
 translated:
 

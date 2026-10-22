@@ -2,9 +2,9 @@
 """macish-keys: a Mac keyboard on Ubuntu.
 
 The keys next to the space bar work like a Mac's: Ctrl, Win, Alt become Control, Option and
-Command (Apple keyboards keep their own Command and Option). Command works as Ctrl from the
-moment it's pressed, and Mac shortcuts that mean something else on Linux are translated
-(Cmd+Tab, Cmd+Space, Cmd+arrows, Cmd+C in a terminal, ...). See RULES.
+Command (the right Alt stays AltGr; Apple keyboards keep their own Command and Option).
+Command works as Ctrl from the moment it's pressed, and Mac shortcuts that mean something else
+on Linux are translated (Cmd+Tab, Cmd+Space, Cmd+arrows, Cmd+C in a terminal, ...). See RULES.
 
 Runs as root (macish-keys.service): it takes the keyboards over and types through a virtual
 keyboard, so no program of yours needs access to your keystrokes. The only thing it reads from
@@ -35,9 +35,10 @@ KEY = {
 }
 k = KEY
 
-# Which physical key is which Mac modifier
+# Which physical key is which Mac modifier. On a PC keyboard the right Alt is left alone: it's
+# AltGr, which types @, €, {, [ and the like on German and other layouts.
 PC_ROLES = {k['LEFTCTRL']: 'ctrl', k['RIGHTCTRL']: 'ctrl', k['LEFTMETA']: 'opt',
-            k['RIGHTMETA']: 'opt', k['LEFTALT']: 'cmd', k['RIGHTALT']: 'cmd'}
+            k['RIGHTMETA']: 'opt', k['LEFTALT']: 'cmd'}
 APPLE_ROLES = {k['LEFTCTRL']: 'ctrl', k['RIGHTCTRL']: 'ctrl', k['LEFTALT']: 'opt',
                k['RIGHTALT']: 'opt', k['LEFTMETA']: 'cmd', k['RIGHTMETA']: 'cmd'}
 SHIFTS = (k['LEFTSHIFT'], k['RIGHTSHIFT'])
