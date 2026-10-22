@@ -7,13 +7,13 @@
 /* the frosted tint that sits over the blurred clone */
 .lam-spot-glass {
   border: 1px solid rgba(255, 255, 255, 0.16);
-  background-color: rgba(34, 34, 40, 0.66);
+  background-color: rgba(34, 34, 40, 0.9);
 }
 .lam-spot-bar-glass { border-radius: 32px; }
 .lam-spot-panel-glass { border-radius: 22px; }
 .lam-spot-light .lam-spot-glass {
   border: 1px solid rgba(0, 0, 0, 0.10);
-  background-color: rgba(246, 246, 250, 0.72);
+  background-color: rgba(246, 246, 250, 0.93);
 }
 
 /* search field */
