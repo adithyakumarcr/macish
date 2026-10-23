@@ -2,21 +2,34 @@
 """macish-keys: a Mac keyboard on Ubuntu.
 
 The keys next to the space bar work like a Mac's: Ctrl, Win, Alt become Control, Option and
-Command (the right Alt stays AltGr; Apple keyboards keep their own Command and Option).
+Command (the right Alt isn't touched; Apple keyboards keep their own Command and Option).
 Command works as Ctrl from the moment it's pressed, and Mac shortcuts that mean something else
 on Linux are translated (Cmd+Tab, Cmd+Space, Cmd+arrows, Cmd+C in a terminal, ...). See RULES.
+With a Mac layout (German (Macintosh), ...) Option types what it types on a Mac: Option+L is @
+on German. With any other layout it's Alt.
 
 Runs as root (macish-keys.service): it takes the keyboards over and types through a virtual
-keyboard, so no program of yours needs access to your keystrokes. The only thing it reads from
-your session is the name of the app in front, which the macish-keys GNOME extension writes to
-/run/user/UID/macish-keys/focus.
+keyboard, so no program of yours needs access to your keystrokes. The only things it reads from
+your session are the name of the app in front, the keyboard layout in use and the sides where
+the window in front meets another monitor, which the macish-keys GNOME extension writes to
+/run/user/UID/macish-keys/focus, .../layout and .../window.
+
+The power button: a press locks the screen, Ctrl+press asks to power off (the Power Off dialog),
+as on a Mac. A laptop's power button reports the press and the release at once, so a long
+press can't be told from a short one; holding it still makes the firmware cut the power. The
+service only watches the button (GNOME's own action for it is turned off by the installer) and
+tells the macish-keys extension, which does it, through /run/user/UID/macish-keys/power.
 
 Safety: if this stops, the kernel hands the keyboards straight back. Ctrl+Option+Cmd+Esc
 (Ctrl+Win+Alt+Esc on a PC keyboard) switches Mac mode off and on.
 
+  macish-keys --mac-layouts   (for the installer: each layout it switches to its Mac version)
+  macish-keys --mac-system XKBLAYOUT XKBVARIANT   (for the installer: the login screen's, so)
   macish-keys --uid UID
 """
 import os
+import re
+import stat
 import sys
 import time
 
@@ -28,28 +41,92 @@ KEY = {
     'ENTER': 28, 'LEFTCTRL': 29, 'A': 30, 'S': 31, 'D': 32, 'F': 33, 'G': 34, 'H': 35, 'J': 36,
     'K': 37, 'L': 38, 'SEMICOLON': 39, 'APOSTROPHE': 40, 'GRAVE': 41, 'LEFTSHIFT': 42,
     'BACKSLASH': 43, 'Z': 44, 'X': 45, 'C': 46, 'V': 47, 'B': 48, 'N': 49, 'M': 50, 'COMMA': 51,
-    'DOT': 52, 'SLASH': 53, 'RIGHTSHIFT': 54, 'LEFTALT': 56, 'SPACE': 57, 'F11': 87,
+    'DOT': 52, 'SLASH': 53, 'RIGHTSHIFT': 54, 'LEFTALT': 56, 'SPACE': 57, 'F4': 62,
+    # LEVEL3 is on no keyboard: it's XKB's <LVL3>, which every layout makes ISO_Level3_Shift
+    'LEVEL3': 84, '102ND': 86, 'F11': 87, 'KPENTER': 96,
     'RIGHTCTRL': 97, 'SYSRQ': 99, 'RIGHTALT': 100, 'HOME': 102, 'UP': 103, 'PAGEUP': 104,
     'LEFT': 105, 'RIGHT': 106, 'END': 107, 'DOWN': 108, 'PAGEDOWN': 109, 'DELETE': 111,
-    'LEFTMETA': 125, 'RIGHTMETA': 126,
+    'LEFTMETA': 125, 'RIGHTMETA': 126, 'F24': 194,
 }
 k = KEY
 
 # Which physical key is which Mac modifier. On a PC keyboard the right Alt is left alone: it's
-# AltGr, which types @, €, {, [ and the like on German and other layouts.
+# AltGr, which on a Mac layout types what Option types there (Mac layouts put Option's
+# characters on AltGr's level) and on any other layout what it always did.
 PC_ROLES = {k['LEFTCTRL']: 'ctrl', k['RIGHTCTRL']: 'ctrl', k['LEFTMETA']: 'opt',
             k['RIGHTMETA']: 'opt', k['LEFTALT']: 'cmd'}
 APPLE_ROLES = {k['LEFTCTRL']: 'ctrl', k['RIGHTCTRL']: 'ctrl', k['LEFTALT']: 'opt',
                k['RIGHTALT']: 'opt', k['LEFTMETA']: 'cmd', k['RIGHTMETA']: 'cmd'}
 SHIFTS = (k['LEFTSHIFT'], k['RIGHTSHIFT'])
 # What each Mac modifier sends while it's held. Command is the right Ctrl, so the two Ctrls
-# can be told apart here; to apps both are Ctrl.
+# can be told apart here; to apps both are Ctrl. Option is Alt, except on its own on a Mac
+# layout, where it's LEVEL3 so that it types (Translator._typing).
 ROLE_OUT = {'ctrl': k['LEFTCTRL'], 'cmd': k['RIGHTCTRL'], 'opt': k['LEFTALT']}
-MODS_ORDER = [k['LEFTCTRL'], k['RIGHTCTRL'], k['LEFTALT'], k['LEFTMETA'], k['LEFTSHIFT'],
-              k['RIGHTSHIFT']]
-KIND = {k['LEFTCTRL']: 'ctrl', k['RIGHTCTRL']: 'ctrl', k['LEFTALT']: 'alt', k['LEFTMETA']: 'super',
-        k['LEFTSHIFT']: 'shift', k['RIGHTSHIFT']: 'shift'}
+MODS_ORDER = [k['LEFTCTRL'], k['RIGHTCTRL'], k['LEFTALT'], k['LEVEL3'], k['LEFTMETA'],
+              k['LEFTSHIFT'], k['RIGHTSHIFT']]
+KIND = {k['LEFTCTRL']: 'ctrl', k['RIGHTCTRL']: 'ctrl', k['LEFTALT']: 'alt', k['LEVEL3']: 'level3',
+        k['LEFTMETA']: 'super', k['LEFTSHIFT']: 'shift', k['RIGHTSHIFT']: 'shift'}
 CANON = {'ctrl': k['LEFTCTRL'], 'alt': k['LEFTALT'], 'super': k['LEFTMETA'], 'shift': k['LEFTSHIFT']}
+# Control+Command on their own: Super, so GNOME's Super+drag moves a window (macOS's Ctrl+Cmd+drag)
+DRAG_CHORD = {'ctrl', 'cmd'}
+# Tapped before Super goes up on its own, so GNOME doesn't take it for "open the overview".
+# It has no symbol in the keymap: it types nothing.
+NOTHING = k['F24']
+
+# The keys that type characters. With Option on a Mac layout these give Option's characters;
+# any other key keeps Option as Alt (Option+F4 closes a window, Option+Enter...).
+TYPING = (set(range(k['1'], k['BACKSPACE'])) | set(range(k['Q'], k['ENTER']))
+          | set(range(k['A'], k['LEFTSHIFT'])) | set(range(k['BACKSLASH'], k['RIGHTSHIFT']))
+          | {k['SPACE'], k['102ND']})
+
+# Layouts the installer switches to their Mac version, each to its own language's: German to
+# German (Macintosh), English (US) to English (Macintosh), English (UK) to English (UK,
+# Macintosh). de's, at's and us's type what the PC one types on every key a PC keyboard
+# prints, so only Option and AltGr change (xkeyboard-config 2.41; the tests check it; us's
+# changes only the key between the left Shift and Z, which US keyboards don't have). gb's
+# moves keys as on a UK Mac: Shift+2 is @, Shift+' is ", # is Option+3, ` is next to the left
+# Shift. Other Mac versions stay out: fr, it, nl, pt, ru, se, fi, no, is and jp's move more
+# keys; ch's makes Shift+Space a no-break space; dk's is the PC layout under a Mac name. If
+# you pick one in Settings, Option types with it too.
+MAC_LAYOUTS = {'de': 'de+mac', 'de+nodeadkeys': 'de+mac_nodeadkeys', 'at': 'at+mac',
+               'us': 'us+mac', 'gb': 'gb+mac'}
+# Mac layouts that make numpad Enter a Level 3 key (Option). A Mac's numpad Enter is Enter,
+# so it's sent as Enter there.
+KPENTER_IS_LEVEL3 = {'xkb:gb+mac'}
+# The system's keyboard layout: the login screen's (GDM asks localed, which reads this file)
+SYSTEM_KEYBOARD = '/etc/default/keyboard'
+
+
+def mac_layout(source):
+    """Is SOURCE, as the extension writes it ('xkb:de+mac'), a layout made for Mac keyboards?
+    Their third and fourth levels hold what Option and Option+Shift type on a Mac."""
+    kind, _, layout = source.partition(':')
+    variant = layout.partition('+')[2]
+    return kind == 'xkb' and re.search(r'(^|[_-])mac', variant, re.I) is not None
+
+
+def system_layout(text):
+    """The first layout in /etc/default/keyboard's TEXT, the one the login screen starts with,
+    as a source: 'xkb:de+mac'. Empty if it names none."""
+    conf = dict(re.findall(r'^\s*(XKB[A-Z]+)\s*=\s*"?([^"\n]*)"?', text, re.M))
+    layout = conf.get('XKBLAYOUT', '').split(',')[0].strip()
+    variant = conf.get('XKBVARIANT', '').split(',')[0].strip()
+    if not layout:
+        return ''
+    return f'xkb:{layout}+{variant}' if variant else f'xkb:{layout}'
+
+
+def mac_system(layouts, variants):
+    """XKBLAYOUT and XKBVARIANT ('us,de', ',') with each layout in MAC_LAYOUTS switched to its
+    Mac version ('us,de', 'mac,mac'), or None if none is."""
+    pairs = list(zip(layouts.split(','), (variants.split(',') + [''] * layouts.count(','))))
+    new = []
+    for layout, variant in pairs:
+        mac = MAC_LAYOUTS.get(f'{layout}+{variant}' if variant else layout)
+        new.append(tuple(mac.partition('+')[::2]) if mac else (layout, variant))
+    if new == pairs:
+        return None
+    return ','.join(lay for lay, _ in new), ','.join(var for _, var in new)
 
 # Apps, by the window's class as GNOME reports it (lower case)
 TERMINALS = {'gnome-terminal-server', 'org.gnome.terminal', 'org.gnome.console', 'kgx',
@@ -62,6 +139,8 @@ CHROMIUM = {'google-chrome', 'chromium', 'chromium-browser', 'brave-browser', 'm
 BROWSERS = CHROMIUM | {'firefox', 'firefox_firefox', 'org.mozilla.firefox', 'firefox-esr',
                        'epiphany', 'org.gnome.epiphany', 'librewolf', 'zen'}
 FILES = {'org.gnome.nautilus', 'nautilus'}
+# The window in front fills the half of its screen on that side, and another monitor is there
+MONITOR_SIDES = {'monitor-left', 'monitor-right', 'monitor-up', 'monitor-down'}
 
 
 def contexts(app):
@@ -80,7 +159,8 @@ def contexts(app):
 class Tap:
     """Send KEY with the modifiers MODS ('ctrl', 'alt', 'super', 'shift') instead."""
     def __init__(self, mods, key, keep_shift=False):
-        self.mods, self.key, self.keep_shift = set(mods), k[key], keep_shift
+        self.mods, self.keep_shift = set(mods), keep_shift
+        self.key = k[key] if isinstance(key, str) else key
 
 
 class Seq:
@@ -132,6 +212,25 @@ RULES = [
     (None, {'cmd'}, True, '3', Tap({'shift'}, 'SYSRQ')),
     (None, {'cmd'}, True, '4', Tap(set(), 'SYSRQ')),
     (None, {'cmd'}, True, '5', Tap(set(), 'SYSRQ')),
+    # Tiling, as macOS's Fn+Ctrl (PC keyboards keep Fn to themselves): Tiling Assistant's keys.
+    # A window already filling the half of its screen next to another monitor goes on to that
+    # monitor (GNOME's move-to-monitor), into the half on the far side, as Rectangle does.
+    ('monitor-left', {'ctrl', 'opt'}, False, 'LEFT',
+     Seq(Tap({'super', 'shift'}, 'LEFT'), Tap({'super'}, 'RIGHT'))),
+    ('monitor-right', {'ctrl', 'opt'}, False, 'RIGHT',
+     Seq(Tap({'super', 'shift'}, 'RIGHT'), Tap({'super'}, 'LEFT'))),
+    ('monitor-up', {'ctrl', 'opt'}, False, 'UP',
+     Seq(Tap({'super', 'shift'}, 'UP'), Tap({'ctrl', 'super'}, 'DOWN'))),
+    ('monitor-down', {'ctrl', 'opt'}, False, 'DOWN',
+     Seq(Tap({'super', 'shift'}, 'DOWN'), Tap({'ctrl', 'super'}, 'UP'))),
+    (None, {'ctrl', 'opt'}, False, 'LEFT', Tap({'super'}, 'LEFT')),
+    (None, {'ctrl', 'opt'}, False, 'RIGHT', Tap({'super'}, 'RIGHT')),
+    (None, {'ctrl', 'opt'}, False, 'UP', Tap({'ctrl', 'super'}, 'UP')),
+    (None, {'ctrl', 'opt'}, False, 'DOWN', Tap({'ctrl', 'super'}, 'DOWN')),
+    (None, {'ctrl', 'opt'}, False, 'F', Tap({'super'}, 'UP')),
+    (None, {'ctrl', 'opt'}, False, 'C', Tap({'ctrl', 'super'}, 'C')),
+    (None, {'ctrl', 'opt'}, False, 'R', Tap({'super'}, 'DOWN')),
+    (None, {'ctrl', 'opt'}, False, 'ENTER', Tap({'ctrl', 'super'}, 'ENTER')),   # full screen
     # Text
     (None, {'cmd'}, None, 'LEFT', Tap(set(), 'HOME', keep_shift=True)),
     (None, {'cmd'}, None, 'RIGHT', Tap(set(), 'END', keep_shift=True)),
@@ -150,15 +249,19 @@ RULES = [
 
 class Translator:
     """Physical key events in, the key events to send out. No devices: feed() it and read
-    what comes back. app() names the app in front."""
+    what comes back. app() names the app in front, layout() the keyboard layout in use,
+    window() the sides where the window in front meets another monitor ('monitor-left ...')."""
 
-    def __init__(self, app=lambda: '', roles=PC_ROLES):
-        self.app, self.roles = app, roles
+    def __init__(self, app=lambda: '', roles=PC_ROLES, layout=lambda: '', window=lambda: ''):
+        self.app, self.roles, self.layout, self.window = app, roles, layout, window
         self.phys = set()        # physical keys held
         self.out_down = set()    # keys held on the way out
         self.pressed = {}        # physical key -> 'pass', or the action its press was turned into
         self.switcher = False    # Cmd+Tab: Super held until Command goes up
         self.toggled = False     # Ctrl+Option+Cmd+Esc was pressed
+        self.chord_used = False  # a key was pressed during Ctrl+Cmd: no drag chord until let go
+        self.super_alone = False # the last thing sent was Super going down
+        self.renamed = {}        # physical key -> the key it's taken for while it's down
         self._out = []
 
     # ---- sending
@@ -167,6 +270,7 @@ class Translator:
             self.out_down.add(code)
         elif value == 0:
             self.out_down.discard(code)
+        self.super_alone = code == k['LEFTMETA'] and value == 1
         self._out.append((code, value))
 
     def _held_roles(self):
@@ -175,13 +279,25 @@ class Translator:
     def _shift_held(self):
         return any(c in self.phys for c in SHIFTS)
 
+    def _drag_chord(self):
+        return (not self.switcher and not self.chord_used and not self._shift_held()
+                and self._held_roles() == DRAG_CHORD)
+
+    def _typing(self):
+        """Option on its own (Shift may be held) on a Mac layout: it types, as on a Mac.
+        With Control or Command too it's a shortcut, so Alt."""
+        return self._held_roles() == {'opt'} and mac_layout(self.layout())
+
     def _wanted_mods(self):
         """The modifiers that should be down for the physical keys held right now."""
+        if self._drag_chord():
+            return {k['LEFTMETA']}
         want = {c for c in self.phys if c in SHIFTS}
+        typing = self._typing()
         for c in self.phys:
             role = self.roles.get(c)
             if role and not (role == 'cmd' and self.switcher):
-                want.add(ROLE_OUT[role])
+                want.add(k['LEVEL3'] if role == 'opt' and typing else ROLE_OUT[role])
         if self.switcher:
             want.add(k['LEFTMETA'])
         return want
@@ -190,6 +306,9 @@ class Translator:
         want = self._wanted_mods() if want is None else want
         for m in MODS_ORDER:
             if m in self.out_down and m not in want:
+                if m == k['LEFTMETA'] and self.super_alone:
+                    self._send(NOTHING, 1)
+                    self._send(NOTHING, 0)
                 self._send(m, 0)
         for m in MODS_ORDER:
             if m not in self.out_down and m in want:
@@ -227,7 +346,8 @@ class Translator:
         self._set_mods()
 
     def _rule(self, code):
-        held, shift, tags = self._held_roles(), self._shift_held(), contexts(self.app())
+        held, shift = self._held_roles(), self._shift_held()
+        tags = contexts(self.app()) | (MONITOR_SIDES & set(self.window().split()))
         for ctx, mods, want_shift, key, action in RULES:
             if k[key] != code or mods != held:
                 continue
@@ -235,6 +355,8 @@ class Translator:
                 continue
             if ctx is None or ctx in tags:
                 return action
+        if code not in TYPING and self._typing():
+            return Tap({'alt'}, code, keep_shift=True)    # Option is Level 3 now: Alt for this
         return None
 
     # ---- the one entry point
@@ -250,9 +372,14 @@ class Translator:
                 self.phys.discard(code)
                 if self.switcher and 'cmd' not in self._held_roles():
                     self.switcher = False
+                if not DRAG_CHORD <= self._held_roles():
+                    self.chord_used = False
             self._set_mods()
             return self._out
 
+        if value == 1 and code == k['KPENTER'] and self.layout() in KPENTER_IS_LEVEL3:
+            self.renamed[code] = k['ENTER']
+        code = self.renamed.pop(code, code) if value == 0 else self.renamed.get(code, code)
         if value == 0:
             self.phys.discard(code)
             done = self.pressed.pop(code, None)
@@ -268,8 +395,10 @@ class Translator:
             return self._out
 
         self.phys.add(code)
+        if DRAG_CHORD <= self._held_roles():
+            self.chord_used = True
         if self.switcher:
-            action = Hold(set(), next(n for n, c in k.items() if c == code))
+            action = Hold(set(), code)
         else:
             action = self._rule(code)
         if isinstance(action, Toggle):
@@ -277,6 +406,7 @@ class Translator:
             return self.reset()
         if action is None:
             self.pressed[code] = 'pass'
+            self._set_mods()          # Ctrl+Cmd+key: Control and Command again, not Super
             self._send(code, 1)
         else:
             self.pressed[code] = action
@@ -290,7 +420,9 @@ class Translator:
         self.out_down.clear()
         self.phys.clear()
         self.pressed.clear()
+        self.renamed.clear()
         self.switcher = False
+        self.chord_used = False
         return out
 
 
@@ -306,25 +438,93 @@ def log(*a):
     print(*a, flush=True)
 
 
-class Focus:
-    """The app in front, as the macish-keys extension wrote it."""
+DEBOUNCE_SECONDS = 0.5      # two devices may report one press of the power button
 
-    def __init__(self, uid):
-        self.path = f'/run/user/{uid}/macish-keys/focus'
-        self.mtime, self.app = None, ''
+
+class PowerButton:
+    """What a press of the power button does: 'lock', or 'off' with Control held. None for a
+    repeat of a press that was just handled."""
+
+    def __init__(self, clock=time.monotonic):
+        self.clock, self.last = clock, None
+
+    def press(self, ctrl_held):
+        now = self.clock()
+        if self.last is not None and now - self.last < DEBOUNCE_SECONDS:
+            return None
+        self.last = now
+        return 'off' if ctrl_held else 'lock'
+
+
+def tell_session(uid, action, run='/run/user'):
+    """Write ACTION to the session's macish-keys/power, for the extension. The folder is the
+    user's, so nothing in it may be followed: not a link in place of the folder or the file."""
+    flags = os.O_CLOEXEC | os.O_NOFOLLOW
+    try:
+        folder = os.open(f'{run}/{uid}/macish-keys', os.O_RDONLY | os.O_DIRECTORY | flags)
+    except OSError as err:
+        log(f'no session to tell ({err})')
+        return
+    try:
+        fd = os.open('power', os.O_WRONLY | os.O_CREAT | os.O_NONBLOCK | flags, 0o644,
+                     dir_fd=folder)
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise OSError('not a plain file')
+            os.ftruncate(fd, 0)
+            os.write(fd, f'{action} {time.monotonic_ns()}\n'.encode())
+        finally:
+            os.close(fd)
+    except OSError as err:
+        log(f'can\'t tell the session to {action}: {err}')
+    finally:
+        os.close(folder)
+
+
+class SessionFile:
+    """What the macish-keys extension wrote to NAME: 'focus' (the app in front), 'layout'
+    (the keyboard layout in use, 'xkb:de+mac') or 'window' (where the window in front meets
+    another monitor, 'monitor-left'). Empty when there's none, as before login."""
+
+    def __init__(self, uid, name):
+        self.path = f'/run/user/{uid}/macish-keys/{name}'
+        self.mtime, self.value = None, ''
+
+    def _parse(self, text):
+        return text[:200].strip().lower()
 
     def __call__(self):
         try:
             mtime = os.stat(self.path).st_mtime_ns
             if mtime != self.mtime:
                 with open(self.path) as f:
-                    self.app, self.mtime = f.read(200).strip().lower(), mtime
+                    self.value, self.mtime = self._parse(f.read(4096)), mtime
         except OSError:
-            self.app = ''
-        return self.app
+            self.mtime, self.value = None, ''
+        return self.value
+
+
+class LoginLayout(SessionFile):
+    """The login screen's keyboard layout, from /etc/default/keyboard: 'xkb:de+mac'."""
+
+    def __init__(self):
+        self.path, self.mtime, self.value = SYSTEM_KEYBOARD, None, ''
+
+    def _parse(self, text):
+        return system_layout(text).lower()
 
 
 def main(argv):
+    if argv == ['--mac-layouts']:
+        for pc, mac in MAC_LAYOUTS.items():
+            print(pc, mac)
+        return 0
+    if len(argv) == 3 and argv[0] == '--mac-system':
+        new = mac_system(argv[1], argv[2])
+        if new and all(re.fullmatch(r'[\w,-]*', part) for part in new):
+            print(*new, sep='\n')
+        return 0
+
     import selectors
     import signal
     import evdev
@@ -333,12 +533,22 @@ def main(argv):
     if len(argv) != 2 or argv[0] != '--uid' or not argv[1].isdigit():
         print(__doc__.strip().splitlines()[-1].strip(), file=sys.stderr)
         return 2
-    focus = Focus(argv[1])
+    focus, session_layout = SessionFile(argv[1], 'focus'), SessionFile(argv[1], 'layout')
+    window = SessionFile(argv[1], 'window')
+    login_layout = LoginLayout()
+
+    def layout():
+        # Before login, and after logout, there's no session: the login screen's layout
+        return session_layout() or login_layout()
 
     def is_keyboard(dev):
         keys = dev.capabilities().get(e.EV_KEY, [])
         return (dev.name != VIRTUAL_NAME and ONLY in dev.name and e.KEY_A in keys
                 and e.KEY_SPACE in keys and e.KEY_LEFTALT in keys)
+
+    def is_power_button(dev):
+        keys = dev.capabilities().get(e.EV_KEY, [])
+        return dev.name != VIRTUAL_NAME and e.KEY_POWER in keys and e.KEY_A not in keys
 
     # Every key the virtual keyboard may send: the main block, plus the keyboards' own extras
     # (not mouse buttons: those would make it look like a mouse to GNOME)
@@ -357,10 +567,12 @@ def main(argv):
     sel = selectors.DefaultSelector()
     sel.register(ui.fd, selectors.EVENT_READ, 'leds')
     devices = {}            # path -> (InputDevice, Translator-roles, keys held on it)
+    buttons = {}            # path -> InputDevice: power buttons, only watched, never taken over
+    power = PowerButton()
     enabled = True
     translators = {}        # roles name -> Translator, one per kind of keyboard
     for name, roles in (('pc', PC_ROLES), ('apple', APPLE_ROLES)):
-        translators[name] = Translator(app=focus, roles=roles)
+        translators[name] = Translator(app=focus, roles=roles, layout=layout, window=window)
 
     def send(events):
         for code, value in events:
@@ -371,6 +583,11 @@ def main(argv):
         try:
             dev = evdev.InputDevice(path)
         except OSError:
+            return
+        if is_power_button(dev):
+            buttons[path] = dev
+            sel.register(dev.fd, selectors.EVENT_READ, path)
+            log(f'watching {dev.name} ({path})')
             return
         if not is_keyboard(dev):
             dev.close()
@@ -390,6 +607,21 @@ def main(argv):
         devices[path] = (dev, kind, set())
         sel.register(dev.fd, selectors.EVENT_READ, path)
         log(f'{"took over" if enabled else "watching"} {dev.name} ({path}, {kind} layout)')
+
+    def ctrl_held():
+        return any(c in held for _dev, _kind, held in devices.values()
+                   for c in (k['LEFTCTRL'], k['RIGHTCTRL']))
+
+    def remove_button(path):
+        dev = buttons.pop(path)
+        try:
+            sel.unregister(dev.fd)
+        except (KeyError, ValueError):
+            pass
+        try:
+            dev.close()
+        except OSError:
+            pass
 
     def remove(path):
         dev, kind, held = devices.pop(path)
@@ -442,10 +674,12 @@ def main(argv):
         if time.monotonic() - last_scan >= RESCAN_SECONDS:
             last_scan = time.monotonic()
             present = set(evdev.list_devices())
-            for path in present - set(devices):
+            for path in present - set(devices) - set(buttons):
                 add(path)
             for path in set(devices) - present:
                 remove(path)
+            for path in set(buttons) - present:
+                remove_button(path)
         for key, _mask in sel.select(timeout=RESCAN_SECONDS):
             if key.data == 'leds':            # Caps Lock and friends: show them on the keyboards
                 for ev in ui.read():
@@ -457,6 +691,18 @@ def main(argv):
                                 pass
                 continue
             path = key.data
+            if path in buttons:
+                try:
+                    events = list(buttons[path].read())
+                except OSError:
+                    remove_button(path)
+                    continue
+                for ev in events:
+                    if ev.type == e.EV_KEY and ev.code == e.KEY_POWER and ev.value == 1:
+                        action = power.press(ctrl_held())
+                        if action:
+                            tell_session(argv[1], action)
+                continue
             if path not in devices:
                 continue
             dev, kind, held = devices[path]

@@ -1,7 +1,8 @@
 {
   "uuid": "macish-keys@adithya",
   "name": "macish keyboard helper",
-  "description": "Tells macish's Mac keyboard service which app is in front.",
+  "description": "Tells macish's Mac keyboard service which app is in front, which keyboard layout is in use, where the window in front meets another monitor, and locks the screen when the power button is pressed.",
   "shell-version": ["45", "46", "47", "48"],
+  "session-modes": ["user", "unlock-dialog"],
   "url": "https://github.com/adithyakumarcr/macish"
 }

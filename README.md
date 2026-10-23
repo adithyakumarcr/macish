@@ -1,3 +1,4 @@
+
 # macish
 
 **Make your Ubuntu look, and work, like a Mac.**
@@ -9,8 +10,8 @@
 macish turns a standard Ubuntu desktop into a macOS Tahoe look-alike, one feature at a time:
 the theme, icons, dock and menu bar, but also the things you'd miss from a Mac: Command, Option
 and Control where a Mac has them, with Cmd+C, Cmd+Tab and the other shortcuts; Spotlight;
-trackpad gestures and three-finger drag; Touch ID with your fingerprint reader; and receiving
-files from an iPhone over AirDrop. You choose the features from a list, and every one of them
+trackpad gestures and three-finger drag; window tiling with Ctrl+Option+arrows; Touch ID with
+your fingerprint reader; and receiving files from an iPhone over AirDrop. You choose the features from a list, and every one of them
 can be removed again, putting your earlier settings back.
 
 ![The installer: tick the features you want, then press Enter](docs/images/installer.png)
@@ -54,9 +55,10 @@ can be removed again, putting your earlier settings back.
 | Feature | id | What you get | Default |
 |---|---|---|---|
 | Touchpad | `touchpad` | tap to click, natural scrolling, two-finger click or tap for right-click, ignored while typing. Gestures through [Touchpad Gesture Customization](https://extensions.gnome.org/extension/7850/): three or four fingers sideways switch desktops, up and down open the overview, a four-finger pinch shows the desktop | on |
-| Mac keyboard | `keyboard` | the keys next to the space bar work like a Mac's: Ctrl, Win, Alt become Control, Option, Command. Cmd+C, Cmd+Tab, Cmd+Space, Cmd+Q, text navigation and more ([details](#mac-keyboard)) | on |
+| Mac keyboard | `keyboard` | the keys next to the space bar work like a Mac's: Ctrl, Win, Alt become Control, Option, Command. Cmd+C, Cmd+Tab, Cmd+Space, Cmd+Q, text navigation, Option's characters (Option+L is @ on German) and more ([details](#mac-keyboard)) | on |
 | Touch ID | `touch-id` | your fingerprint logs you in, unlocks the screen, and approves sudo in a terminal and admin prompts ([details](#touch-id)) | on |
 | Three-finger drag | `three-finger-drag` | drag windows and select text with three fingers (newer libinput from a PPA, Ubuntu 24.04 only) | on |
+| Window tiling | `windows` | tiling like macOS Sequoia, through Ubuntu's Tiling Assistant: drag a window to an edge for a half, a corner for a quarter, the top to fill, without Windows' Snap Assist popup; <kbd>Ctrl</kbd>+<kbd>Option</kbd>+arrows, F, C, R tile, fill, center and restore it, and carry a tiled window on to the next monitor; Ctrl+Option+Enter is full screen; Ctrl+Cmd+drag moves it from anywhere ([shortcuts](#mac-keyboard)). On PC keys: Super+arrows, Ctrl+Super+↑ / ↓ / C / Enter, Super+Shift+arrows to another monitor, Super+drag | on |
 | Spotlight | `spotlight` | <kbd>Alt</kbd>+<kbd>Space</kbd> (Cmd+Space with the Mac keyboard: the same keys) opens a search bar: apps, websites and Google searches in Chrome, folders (type `~/` or `/`, <kbd>Tab</kbd> goes in), recent searches | on |
 | AirDrop | `airdrop` | receive files from iPhones, iPads and Macs over real AirDrop, with Accept and Decline in a notification ([details](#airdrop)) | off |
 
@@ -128,8 +130,7 @@ versions this was tested with; `LIKE_A_MAC_LATEST=1 ./install.sh` uses their new
 ![Ctrl is Control, Win is Option, Alt is Command](docs/images/keyboard.png)
 
 The keys next to the space bar take the Mac's roles: **Ctrl** is Control, **Win** is Option and
-**Alt** is Command. The right Alt stays **AltGr**, so @, €, { and [ type as before on German and
-other layouts (Apple keyboards keep their own Command and Option). Command works like Ctrl
+**Alt** is Command (Apple keyboards keep their own Command and Option). Command works like Ctrl
 from the moment it's pressed, so Cmd+click and Cmd+scroll work too, and these Mac shortcuts are
 translated:
 
@@ -143,6 +144,10 @@ translated:
 | Cmd+Space | Spotlight |
 | Ctrl+← / Ctrl+→, Ctrl+↑ | switch desktop, show all windows (Mission Control) |
 | Ctrl+Cmd+Q, Ctrl+Cmd+F | lock the screen, full screen |
+| Ctrl+Option+← / → / ↑ / ↓ | tile the window to the left / right / top / bottom half (Window tiling; a Mac uses Fn+Ctrl, which PC keyboards keep to themselves). Already in that half, with another monitor on that side: on to that monitor, into its far half (← on the left half: the right half of the monitor on the left) |
+| Ctrl+Option+F / C / R | fill the screen, center, back to the size before (Window tiling) |
+| Ctrl+Option+Enter | full screen, without title bar or top bar; again to leave it (Window tiling; Ctrl+Option+F only fills the screen) |
+| Ctrl+Cmd+drag | move a window by any part of it |
 | Cmd+Shift+3 / 4 / 5 | screenshot of the whole screen / an area / the screenshot tool |
 | Cmd+← / → / ↑ / ↓ | start / end of the line, top / bottom (with Shift: select) |
 | Option+← / → | a word left / right (with Shift: select) |
@@ -151,10 +156,60 @@ translated:
 | Cmd+Shift+[ / ] | previous / next tab |
 | Cmd+Backspace, Cmd+↑, Cmd+↓, Cmd+Shift+. | in Files: move to Trash, parent folder, open, show hidden files |
 
+**The power button** works like a Mac's: a press locks the screen, and **Ctrl** + a press
+(Control+power) opens the Power Off dialog. GNOME's own power-button action is turned off so the
+two don't fight; uninstalling puts it back. Holding the button down still cuts the power, as the
+firmware does it. Two limits: a press is judged when it comes, not on release, so a long press
+isn't a different action; and the dialog needs the Ctrl held when the button goes down.
+
 **Ctrl+Win+Alt+Esc** (Control+Option+Command+Esc) switches Mac mode off and on. A small service
 does the translating; if it ever stops, the keyboards are plain PC keyboards again straight
 away, and nothing stays held down. Log out and back in once after installing, so the shortcuts
-that depend on the app in front (Terminal, browsers, Files) know which one it is.
+that depend on the app in front (Terminal, browsers, Files) know which one it is, and Option
+knows your keyboard layout.
+
+### Typing with Option
+
+On a Mac, Option types the characters a PC types with AltGr, and which ones depends on the
+keyboard's language. Here each layout is switched to the Macintosh version of its own
+language, so Option types what a Mac in that language types:
+
+- **German:** **Option+L** is @, Option+5 / 6 are [ ], Option+8 / 9 are { }, Option+7 is |,
+  Option+Shift+7 is \ and Option+E is €. AltGr+Q is no longer @ (it's «).
+- **English (US):** Option+2 is ™, Option+G ©, Option+S ß, Option+8 •, Option+Shift+2 €, and
+  Option+E then a letter puts an acute accent on it.
+- **English (UK):** keys move to where a UK Mac has them: Shift+2 is @, Shift+' is ", # is
+  Option+3 (Shift+3 stays £), Option+2 is €, the key left of 1 is § / ±, the key left of Enter
+  is \ / | and the key next to the left Shift is ` / ~. So a PC keyboard's printed @, ", #, \
+  and ` are wrong on these keys. Numpad Enter stays Enter.
+
+The right Alt types the same characters as Option. Every other key types what's printed on it,
+as before.
+
+| Your layout | After installing |
+|---|---|
+| German, German (no dead keys), German (Austria) | German (Macintosh): Option types like on a German Mac |
+| English (US) | English (Macintosh): Option types like on a US Mac |
+| English (UK) | English (UK, Macintosh): keys and Option as on a UK Mac (see above) |
+| A Macintosh layout you pick yourself (Settings → Keyboard), e.g. English (UK, Macintosh) | Option types its Option characters |
+| Any other layout | unchanged: Option is Alt, the right Alt is AltGr |
+
+German's and English (US)'s Macintosh versions keep every printed key of a PC keyboard
+(English (Macintosh) changes only the key between the left Shift and Z, which US keyboards
+don't have); English (UK)'s moves the keys above, as on a UK Mac. Others (French, Italian,
+Swedish, ...) move more keys, so they're left alone. With a Macintosh layout, Option with a key that doesn't type (F4, Enter, Tab) is still
+Alt, and with Control or Command it's part of a shortcut, so the shortcuts above don't change.
+
+**Back to AltGr:** in Settings → Keyboard → Input Sources, add your layout without
+"(Macintosh)" and remove the Macintosh one. The Mac shortcuts stay, Option is Alt again, and
+installing again leaves your choice alone. Removing the Mac keyboard switches the layouts it
+changed back.
+
+**The login screen** gets the same: its layout (the system's, in `/etc/default/keyboard`)
+becomes its Macintosh version too, and before you log in, Option follows it. So a password with
+@ types the same at the login screen, the lock screen and in your session. This is for every
+account on this computer, and the text consoles (Ctrl+Alt+F3) use it too. It takes effect the
+next time the login screen appears.
 
 ## Touch ID
 
@@ -230,12 +285,23 @@ stopped halfway shows as **partly installed** in `--list`, and can still be remo
   [ubuntuhandbook1/libinput](https://launchpad.net/~ubuntuhandbook1/+archive/ubuntu/libinput) PPA
   and upgrades the installed `libinput*` packages from it. Removing it removes the PPA and puts
   Ubuntu's libinput back. A PPA added by hand before is taken over, so it goes too.
+- **Window tiling:** uses Ubuntu's Tiling Assistant (turned on if it was off). Its shortcuts,
+  the Snap Assist popup switched off, the Super+drag move and the GNOME shortcuts for moving a
+  window to another monitor are set with `dconf`, and their old values are put back on uninstall.
 - **Mac keyboard:** installs `python3-evdev`, the service `/usr/local/lib/macish/macish-keys`
   and `/etc/systemd/system/macish-keys.service`. It runs as root, so no program of yours needs
-  access to your keystrokes; the only thing it reads from your session is the name of the app in
-  front, which the `macish-keys` extension writes to `/run/user/<you>/macish-keys/focus`. The GNOME
-  shortcuts it sends (Super+Tab, Super+H, Print, ...) are added where missing and put back on
-  uninstall. If Toshy's leftovers are there (`/etc/udev/rules.d/70-toshy-keymapper-input.rules`
+  access to your keystrokes; the only things it reads from your session are the name of the app
+  in front, the keyboard layout in use and the sides where the window in front meets another
+  monitor, which the `macish-keys` extension writes to `/run/user/<you>/macish-keys/focus`,
+  `.../layout` and `.../window` (the extension stays on at the lock screen,
+  so Option types your password there as it does everywhere). The power button's press
+  (a press locks the screen, Ctrl+press asks to power off) goes the other way, to `.../power`,
+  which the extension acts on. The GNOME shortcuts it sends
+  (Super+Tab, Super+H, Print, ...) are added where missing and put back on uninstall. A German,
+  Austrian, English (US) or English (UK) layout in your input sources becomes its Macintosh
+  version, and so does the login screen's: `XKBLAYOUT` and `XKBVARIANT` in
+  `/etc/default/keyboard` (Ubuntu's `localectl` can only read them). Both go back on uninstall, the login screen's only if it's
+  still the one set here. If Toshy's leftovers are there (`/etc/udev/rules.d/70-toshy-keymapper-input.rules`
   and membership of the `input` group, which let any program read your keystrokes), they're
   removed and not put back.
 - **Touch ID:** adds `/usr/share/pam-configs/macish-touch-id` and turns it on with Ubuntu's
@@ -276,6 +342,11 @@ stopped halfway shows as **partly installed** in `--list`, and can still be remo
   for plain PC keys (the same keys switch Mac mode back on), then see `journalctl -u macish-keys`.
 - **Cmd+C doesn't copy in a terminal**, or browser and Files shortcuts act like everywhere else:
   log out and back in once after installing the Mac keyboard, so it knows the app in front.
+- **Option+L doesn't type @** (German): log out and back in once after installing, so Option
+  knows the layout. The right Alt types it straight away. At the login screen, the layout
+  changes the next time it appears; until then it's the PC one, where @ is AltGr+Q. Plain PC keys
+  (<kbd>Ctrl</kbd>+<kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>Esc</kbd>) keep the Macintosh layout, so
+  there @ is the right Alt+L too.
 - **Touch ID can't save your finger** ("the sensor already has this finger" or "memory is
   full"): another account, or Windows on the same laptop, saved fingers on the sensor. Delete
   them there, then run `./install.sh --only touch-id` again. `fprintd-list $USER` shows what
@@ -331,7 +402,9 @@ Use the helpers in `lib/common.sh` (`set_key`, `backup_file`, `track_path`, `ext
 always undo it, even after a failed install. A feature that changes system files keeps its own
 record in `~/.local/share/like-a-mac/saved/<id>.*` and undoes it in `component_uninstall`.
 Tests: `gjs -m extensions/spotlight/test-search.js` (Spotlight's search) and
-`python3 assets/keyboard/test-macish-keys.py` (every Mac keyboard shortcut).
+`python3 assets/keyboard/test-macish-keys.py` (every Mac keyboard shortcut, and, with
+libxkbcommon, that each layout it switches keeps its printed keys and types a Mac's characters
+with Option).
 
 ## Credits
 

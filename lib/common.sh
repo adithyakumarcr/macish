@@ -73,6 +73,20 @@ set_key() {
   dconf write "$key" "$value"
 }
 
+# add_binding SCHEMA KEY ACCEL  - GNOME also answers to ACCEL; yours stay
+add_binding() {
+  local cur new
+  cur="$(gsettings get "$1" "$2" 2> /dev/null)" || return 0
+  new="$(python3 - "$cur" "$3" <<'PY'
+import ast, sys
+cur, accel = sys.argv[1:]
+items = ast.literal_eval(cur.replace('@as ', ''))
+print('' if accel in items else repr(items + [accel]))
+PY
+)"
+  if [[ -n "$new" ]]; then set_key "/${1//.//}/$2" "$new"; fi
+}
+
 restore_keys() {
   local file="$LAM_SAVED/$1.keys" key old
   [[ -f "$file" ]] || return 0
