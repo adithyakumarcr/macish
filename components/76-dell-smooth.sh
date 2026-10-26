@@ -1,6 +1,6 @@
 ID=dell-smooth
 TITLE="Dell 14 Premium smoothness"
-DESC="smooth animations and gestures on the Dell 14 Premium (changes system files)"
+DESC="not a Mac feature: smooth animations and gestures on the Dell 14 Premium (changes system files)"
 SUDO=1
 DEFAULT=off
 MODEL="Dell 14 Premium DA14250"

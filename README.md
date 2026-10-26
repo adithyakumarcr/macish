@@ -62,10 +62,12 @@ can be removed again, putting your earlier settings back.
 | Spotlight | `spotlight` | <kbd>Alt</kbd>+<kbd>Space</kbd> (Cmd+Space with the Mac keyboard: the same keys) opens a search bar: apps, websites and Google searches in Chrome, folders (type `~/` or `/`, <kbd>Tab</kbd> goes in), recent searches | on |
 | AirDrop | `airdrop` | receive files from iPhones, iPads and Macs over real AirDrop, with Accept and Decline in a notification ([details](#airdrop)) | off |
 
-**For one laptop**
+**Optional, and not Mac features.** They fix things on some computers and have nothing to do with
+macOS; they are off until you tick them.
 
 | Feature | id | What you get | Default |
 |---|---|---|---|
+| Screen layout | `displays` | after a docking station reconnects, your primary screen, the screens' positions and scales come back: GNOME saves them per connector, and a dock hands out new connectors every time. macish remembers them per monitor instead ([details](#what-it-changes-on-your-system)) | off |
 | Dell 14 Premium smoothness | `dell-smooth` | smoother animations and gestures on the Dell 14 Premium (DA14250): newer Intel GPU firmware, the NVIDIA GPU sleeps when it isn't used, GNOME's power modes reach Dell's thermal modes | off |
 
 The installer only offers the features this computer supports. **Light and Dark** follow
@@ -314,6 +316,17 @@ stopped halfway shows as **partly installed** in `--list`, and can still be remo
   on this computer: fprintd keeps it in `/var/lib/fprint` (root only), and readers that match on
   the chip, like Goodix's, keep it on the sensor. Removing the feature deletes the finger macish
   saved.
+- **Screen layout:** installs the user service `~/.local/bin/macish-displays` (with
+  `~/.config/systemd/user/macish-displays.service`). It remembers each set of screens in
+  `~/.local/state/macish/displays.json`, by the monitors' vendor, model and serial number. When
+  screens appear (the dock is plugged in, its screens come up one by one, or you log in with it
+  connected) it puts the saved layout back through GNOME's display service, as a temporary
+  configuration: GNOME's "Keep changes?" dialog doesn't appear, but `~/.config/monitors.xml` isn't
+  updated by the restore either, so this service's file is what remembers. If only some of the
+  screens are there, it uses the layout of the most recent set that had them all and leaves the
+  missing ones out. While the screens stay as they are, a change you make in Settings → Displays
+  is remembered. Removing the feature stops the service and deletes its files; the layouts GNOME
+  saved stay as they are.
 - **Dell 14 Premium smoothness:** installs Intel's GPU firmware `mtl_guc_70.bin` from
   [linux-firmware](https://gitlab.com/kernel-firmware/linux-firmware) 20260410 (checksum verified)
   as `/lib/firmware/updates/i915/mtl_guc_70.bin`; adds

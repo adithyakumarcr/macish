@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+"""Put your screens back where you had them after a reconnect (part of macish).
+
+A docking station hands its monitors out on a different connector (DP-5, DP-6, DP-7, ...) every
+time it is plugged in. GNOME saves a layout (which screen is primary, where each one sits, scale)
+per connector, so the same monitors on new connectors look new to it and get a default layout.
+
+This service remembers the layout per monitor (vendor, model and serial number, never the
+connector). When screens appear (you plug the dock in, or you log in with it connected) it puts
+that layout back, also when only some of them are there (it takes the layout from the most
+recent one that had them all, and leaves the missing ones out). Changes you make yourself are
+remembered as they are.
+
+It applies the layout as a temporary configuration (method 1 of ApplyMonitorsConfig). A persistent
+one (method 2) makes GNOME Shell ask "Keep changes?" and undo it after 20 seconds without an
+answer. The price: GNOME's own ~/.config/monitors.xml isn't updated by the restore; this
+service's file below is what remembers.
+
+  ~/.local/state/macish/displays.json   what it remembers
+  --once      look at the screens now, apply what is needed, and exit
+  --dry-run   as --once, but only check that GNOME would accept it; changes nothing
+"""
+import json
+import os
+import signal
+import sys
+import time
+from pathlib import Path
+
+import gi
+gi.require_version('Gio', '2.0')
+from gi.repository import Gio, GLib
+
+HOME = Path.home()
+STORE = Path(os.environ.get('XDG_STATE_HOME', HOME / '.local/state')) / 'macish/displays.json'
+SETTLE_SECONDS = 2   # a dock brings its screens up one by one: wait until it's quiet
+
+BUS, PATH, IFACE = 'org.gnome.Mutter.DisplayConfig', '/org/gnome/Mutter/DisplayConfig', \
+    'org.gnome.Mutter.DisplayConfig'
+
+
+def log(msg):
+    print(msg, file=sys.stderr, flush=True)
+
+
+def ident(spec):          # (connector, vendor, product, serial) -> "vendor/product/serial"
+    return '/'.join(spec[1:4])
+
+
+# ---- what GNOME says now -----------------------------------------------------
+def read_state(proxy):
+    """The screens now: {'serial', 'monitors': {id: {...}}, 'logical': [...]}"""
+    serial, monitors, logical, _ = proxy.call_sync('GetCurrentState', None, 0, -1, None).unpack()
+    mons = {}
+    for spec, modes, _ in monitors:
+        cur = next((m for m in modes if m[6].get('is-current')), None)
+        mons[ident(spec)] = {'connector': spec[0], 'modes': modes, 'current': cur}
+    lms = []
+    for x, y, scale, transform, primary, specs, _ in logical:
+        lms.append({'x': x, 'y': y, 'scale': round(scale, 3), 'transform': transform,
+                    'primary': bool(primary), 'monitors': sorted(ident(s) for s in specs)})
+        for s in specs:
+            cur = mons[ident(s)]['current']
+            if cur:
+                mons[ident(s)]['mode'] = [cur[1], cur[2], round(cur[3], 3)]
+    return {'serial': serial, 'monitors': mons, 'logical': lms}
+
+
+def layout_of(state):
+    """The part worth remembering: the logical monitors, each screen with its mode."""
+    out = []
+    for lm in sorted(state['logical'], key=lambda l: (l['x'], l['y'], l['monitors'])):
+        out.append(dict(lm, monitors=[{'id': i, 'mode': state['monitors'][i].get('mode')}
+                                      for i in lm['monitors']]))
+    return {'logical': out}
+
+
+def connectors_of(state):
+    return {i: m['connector'] for i, m in state['monitors'].items()}
+
+
+def key_of(ids):
+    return '|'.join(sorted(ids))
+
+
+# ---- what it remembers -------------------------------------------------------
+def load_store():
+    """{key: {'ts': when, 'layout': ...}}; empty when there is no file yet."""
+    try:
+        return json.loads(STORE.read_text())['sets']
+    except (OSError, ValueError, KeyError):
+        return {}
+
+
+def save_store(store):
+    STORE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = STORE.with_suffix('.tmp')
+    tmp.write_text(json.dumps({'sets': store}, indent=1, sort_keys=True))
+    tmp.replace(STORE)
+
+
+# ---- apply -------------------------------------------------------------------
+def build_apply(layout, state):
+    """The ApplyMonitorsConfig argument for LAYOUT on the connectors that are there now, or
+    None when it can't be done (a mode or scale these screens don't have)."""
+    out = []
+    for lm in layout['logical']:
+        mons = []
+        for m in lm['monitors']:
+            cur = state['monitors'].get(m['id'])
+            if cur is None:
+                return None
+            want = m['mode']
+            mode = next((md for md in cur['modes'] if want and md[1] == want[0] and md[2] == want[1]
+                         and abs(md[3] - want[2]) < 0.05), cur['current'])
+            if mode is None:
+                return None
+            if not any(abs(s - lm['scale']) < 0.001 for s in mode[5]):
+                log('scale %s is not available on %s' % (lm['scale'], cur['connector']))
+                return None
+            mons.append((cur['connector'], mode[0], {}))
+        out.append((lm['x'], lm['y'], lm['scale'], lm['transform'], lm['primary'], mons))
+    return out
+
+
+def apply_config(proxy, state, lms, verify):
+    arg = GLib.Variant('(uua(iiduba(ssa{sv}))a{sv})', (
+        state['serial'], 0 if verify else 1,   # 0 only checks, 1 is temporary: no dialog
+        lms, {}))
+    proxy.call_sync('ApplyMonitorsConfig', arg, 0, -1, None)
+
+
+# ---- which layout to put back -------------------------------------------------
+def restrict(layout, ids, state):
+    """LAYOUT without the screens that aren't there now (IDS are those that are), or None."""
+    logical = []
+    for lm in layout['logical']:
+        mons = [m for m in lm['monitors'] if m['id'] in ids]
+        if mons:
+            logical.append(dict(lm, monitors=mons))
+    if not logical:
+        return None
+    if not any(lm['primary'] for lm in logical):   # the primary one is gone: an outside screen
+        def inside(lm):
+            return any(state['monitors'][m['id']]['connector'].startswith(('eDP', 'LVDS', 'DSI'))
+                       for m in lm['monitors'])
+        next((lm for lm in logical if not inside(lm)), logical[0])['primary'] = True
+    x0, y0 = min(lm['x'] for lm in logical), min(lm['y'] for lm in logical)
+    for lm in logical:   # what's left starts at the corner again
+        lm['x'] -= x0
+        lm['y'] -= y0
+    logical.sort(key=lambda l: (l['x'], l['y'], [m['id'] for m in l['monitors']]))
+    return dict(layout, logical=logical)
+
+
+def pick_layout(store, ids, state):
+    """What was saved for exactly these screens; else the most recent layout of a bigger set that
+    had them all (a dock that is still bringing its screens up, or one that lost one)."""
+    exact = store.get(key_of(ids))
+    if exact:
+        return exact['layout']
+    bigger = [r for k, r in store.items() if ids < set(k.split('|'))]
+    if bigger:
+        return restrict(max(bigger, key=lambda r: r['ts'])['layout'], ids, state)
+    return None
+
+
+# ---- one look at the screens -------------------------------------------------
+def restore(proxy, want, ids, verify):
+    """Put WANT on the screens IDS. GNOME refuses a request made from an out-of-date picture of
+    the screens (a dock still bringing them up): look again and retry. True when it's done."""
+    for _ in range(4):
+        state = read_state(proxy)
+        if set(state['monitors']) != ids:
+            return False   # the screens changed meanwhile: the next look handles them
+        lms = build_apply(want, state)
+        if lms is None:
+            log('could not use the saved layout for these screens; leaving them as they are')
+            return False
+        try:
+            apply_config(proxy, state, lms, verify)
+            log('%s the saved layout for %d screens' % ('checked' if verify else 'restored', len(ids)))
+            return True
+        except GLib.Error as e:
+            if 'stale' not in e.message:
+                log('GNOME did not accept the saved layout: %s' % e.message)
+                return False
+    log('GNOME kept saying the screens had changed; will try again at the next change')
+    return False
+
+
+def settle(proxy, last, verify=False):
+    """LAST remembers between looks: [the connectors seen, the restore still owed]. The screens
+    are "arriving" when the connectors changed: what GNOME has set up then is its own default or an
+    old saved layout, so yours is put back, and not remembered. If that didn't work, what's there
+    is still GNOME's and isn't remembered either, and the restore is tried again. Otherwise the
+    screens are as you left them or as you just changed them: that is what to remember."""
+    state = read_state(proxy)
+    ids = set(state['monitors'])
+    if not ids or len(ids) != len(state['monitors']):
+        return
+    store = load_store()
+    cur_layout, conns = layout_of(state), connectors_of(state)
+    arriving = conns != last[0]
+    last[0] = conns
+    if arriving:
+        last[1] = None
+
+    if not store:
+        # the very first look: nothing is known, so what you see is yours
+        store[key_of(ids)] = {'ts': time.time(), 'layout': cur_layout}
+    else:
+        owed = last[1]
+        if arriving:
+            want = pick_layout(store, ids, state)
+            if want is None:
+                log('no saved layout for these screens: %d' % len(ids))
+            elif want != cur_layout:
+                owed = {'want': want, 'seen': cur_layout}
+        elif owed and cur_layout == owed['seen']:
+            pass   # still what GNOME made of them: not yours, not remembered
+        else:
+            owed = None
+            store[key_of(ids)] = {'ts': time.time(), 'layout': cur_layout}
+        if owed and restore(proxy, owed['want'], ids, verify):
+            owed = None
+        last[1] = owed
+    if not verify:
+        save_store(store)
+
+
+def main():
+    verify = '--dry-run' in sys.argv
+    proxy = Gio.DBusProxy.new_for_bus_sync(Gio.BusType.SESSION, Gio.DBusProxyFlags.NONE, None,
+                                           BUS, PATH, IFACE, None)
+    if verify or '--once' in sys.argv:
+        settle(proxy, [None, None], verify)
+        return
+
+    pending, last = [0], [None, None]
+    loop = GLib.MainLoop()
+
+    def run():
+        pending[0] = 0
+        try:
+            settle(proxy, last)
+        except Exception as e:   # keep watching whatever went wrong this time
+            log('error: %r' % (e,))
+        return False
+
+    def changed(*_):
+        if pending[0]:
+            GLib.source_remove(pending[0])
+        pending[0] = GLib.timeout_add_seconds(SETTLE_SECONDS, run)
+
+    proxy.connect('g-signal', lambda p, sender, sig, params: changed() if sig == 'MonitorsChanged' else None)
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, lambda: loop.quit() or False)
+    GLib.idle_add(run)   # and once at the start
+    loop.run()
+
+
+if __name__ == '__main__':
+    main()

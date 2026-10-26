@@ -1,0 +1,13 @@
+[Unit]
+Description=macish: put the screens back where you had them when a dock reconnects
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/macish-displays
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
