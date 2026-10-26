@@ -542,7 +542,12 @@ def main(argv):
         return session_layout() or login_layout()
 
     def is_keyboard(dev):
-        keys = dev.capabilities().get(e.EV_KEY, [])
+        caps = dev.capabilities()
+        keys = caps.get(e.EV_KEY, [])
+        # A mouse can list letter keys too (Logitech's do, for button macros). Grabbing it would
+        # swallow its pointer motion, since only keys are passed on to the virtual keyboard
+        if e.REL_X in caps.get(e.EV_REL, []):
+            return False
         return (dev.name != VIRTUAL_NAME and ONLY in dev.name and e.KEY_A in keys
                 and e.KEY_SPACE in keys and e.KEY_LEFTALT in keys)
 
